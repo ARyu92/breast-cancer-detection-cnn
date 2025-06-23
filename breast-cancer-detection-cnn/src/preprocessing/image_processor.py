@@ -1,5 +1,6 @@
 import os
 import pydicom
+import numpy
 
 class ImageProcessor:
     def __init__(self):
@@ -16,10 +17,14 @@ class ImageProcessor:
                     dicom_paths.append(full_path)
         return dicom_paths
 
+
     #This function takes in a file path to a dicom image and outputs an object holding the dicom file data.
     def import_image(self, file_path):
         dicom_file = pydicom.dcmread(file_path)
         return dicom_file
+    
+
+
     
     def get_pixel_data(self, dicom):
         pixels = dicom.pixel_array

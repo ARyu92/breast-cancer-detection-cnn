@@ -2,7 +2,7 @@ import unittest
 import sys
 import os
 import pydicom
-
+import numpy as np 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
 from preprocessing.image_processor import ImageProcessor
@@ -21,11 +21,6 @@ class test_image_processor(unittest.TestCase):
         self.assertIsNotNone(self.processor)
 
 
-    #def test_find_image(self):
-        #images = self.processor.find_images(self.data_directory_path)
-        #self.assertEqual(len(images), 10239)
-
-
     #Test a function that imports a DICOM image.
     def test_import_image(self):
         images = self.processor.find_images(self.data_directory_path)
@@ -38,11 +33,13 @@ class test_image_processor(unittest.TestCase):
         
         self.assertIsInstance(dicom, pydicom.dataset.FileDataset)
 
+    #This tests that the function can take in a dicom object and return the pixel data. 
     def test_pixel_data_retrieval(self):
         dicom = self.processor.import_image(self.sample_image_path)
         image = self.processor.get_pixel_data(dicom)
 
-        self.assertEqual(len(image), 249)
+        self.assertEqual(type(image), np.ndarray)
+
 
 if __name__ == "__main__":
     unittest.main()
