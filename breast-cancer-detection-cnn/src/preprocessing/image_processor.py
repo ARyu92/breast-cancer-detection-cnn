@@ -1,6 +1,7 @@
 import os
 import pydicom
 import numpy
+import cv2
 
 class ImageProcessor:
     def __init__(self):
@@ -22,11 +23,13 @@ class ImageProcessor:
     def import_image(self, file_path):
         dicom_file = pydicom.dcmread(file_path)
         return dicom_file
-    
 
-
-    
+    #Returns the pixel data from the dicom object. 
     def get_pixel_data(self, dicom):
         pixels = dicom.pixel_array
         return pixels
     
+    #Resizes the pixel data to a given input size.
+    def resize_image(self, pixels, dimensions = (400,400)):
+        pixels = cv2.resize(pixels, dimensions)
+        return pixels

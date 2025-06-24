@@ -40,6 +40,13 @@ class test_image_processor(unittest.TestCase):
 
         self.assertEqual(type(image), np.ndarray)
 
+    def test_resize_image(self):
+        dicom = self.processor.import_image(self.sample_image_path)
+        image = self.processor.get_pixel_data(dicom)
+        image = self.processor.resize_image(image, dimensions = (300,300))
+
+        self.assertEqual (len(image) * len (image[0]), 90000)
+
 
 if __name__ == "__main__":
     unittest.main()

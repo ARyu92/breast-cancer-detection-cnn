@@ -27,6 +27,7 @@ class dataProcessor:
     #Generates a full image path to the image 
     def generate_image_path(self, df):
         file_path = df["image file path"]
+        #Use a regular expression to match everything up to "CC/" or "MLO/" in the file path. 
         file_path_filter = "../data/Data/manifest/CBIS-DDSM/" + re.match(r'(.+?(CC|MLO)/)', file_path).group(0)
         extended_path = self.image_processor.find_images(file_path_filter)
         return extended_path[0]
@@ -36,6 +37,7 @@ class dataProcessor:
         image_path = self.generate_image_path(df_row)
         dicom = self.image_processor.import_image(image_path)
         pixels = self.image_processor.get_pixel_data(dicom)
+        pixels = self.image_processor.resize_image(pixels)
 
         return pixels
     
@@ -84,7 +86,7 @@ class dataProcessor:
         df = self.import_csv(path)
         df = self.extract_columns(df)
 
-        num_of_rows = len(df)
+        num_of_rows = 50 # len(df)
         X = []
         Y = []
         Z = []
