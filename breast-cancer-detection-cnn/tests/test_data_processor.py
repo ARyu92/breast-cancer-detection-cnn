@@ -28,7 +28,7 @@ class test_image_processor(unittest.TestCase):
     def test_extract_columns(self):
         df = self.processor.import_csv(self.data_directory_path + "mass_case_description_train_set.csv")
         df = self.processor.extract_columns(df)
-        self.assertListEqual(df.columns.tolist(), ["breast_density", "left or right breast", "image view", "pathology", "image file path" ])
+        self.assertListEqual(df.columns.tolist(), ["left or right breast", "image view", "pathology", "image file path" ])
 
     #This tests that a path to the image is generated from the patient row.
     def test_patient_path(self):
@@ -81,9 +81,9 @@ class test_image_processor(unittest.TestCase):
 
     #Tests that the dataset can be generated.
     def test_generate_dataset(self):
-        X, Y, Z = self.processor.generate_dataset(self.data_directory_path + "mass_case_description_train_set.csv")
+        X, Y, Z = self.processor.generate_dataset(self.data_directory_path + "mass_case_description_test_set.csv")
 
-        self.assertTrue((len(X) == 1318) & (len(Y) == 1318) & (len(Z) == 1318))
+        self.assertTrue((len(X) == 50) & (len(Y) == 50) & (len(Z) == 50))
 
 if __name__ == "__main__":
     unittest.main()

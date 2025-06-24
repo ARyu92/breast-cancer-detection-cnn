@@ -22,7 +22,7 @@ class dataProcessor:
     
     #Takes the dataframe and filters by wanted properties.
     def extract_columns(self, df):
-        return df[["breast_density", "left or right breast", "image view", "pathology", "image file path"]]
+        return df[["left or right breast", "image view", "pathology", "image file path"]]
     
     #Generates a full image path to the image 
     def generate_image_path(self, df):
@@ -61,10 +61,10 @@ class dataProcessor:
             Y= 1
 
         #The Image metadata tensor.
-        Z = df_row[["breast_density", "left or right breast", "image view"]]
+        Z = df_row[["left or right breast", "image view"]]
 
         #Breast density 1-4 scaled min-max
-        Z["breast_density"] = (Z["breast_density"] - 1)/3
+        #Z["breast_density"] = (Z["breast_density"] - 1)/3
 
         #Left is 0, Right is 1
         if Z["left or right breast"] == "LEFT":
@@ -86,7 +86,7 @@ class dataProcessor:
         df = self.import_csv(path)
         df = self.extract_columns(df)
 
-        num_of_rows = 50 # len(df)
+        num_of_rows = len(df)
         X = []
         Y = []
         Z = []
