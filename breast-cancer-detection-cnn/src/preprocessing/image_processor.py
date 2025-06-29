@@ -1,6 +1,6 @@
 import os
 import pydicom
-import numpy
+import numpy as np
 import cv2
 
 class ImageProcessor:
@@ -27,6 +27,8 @@ class ImageProcessor:
     #Returns the pixel data from the dicom object. 
     def get_pixel_data(self, dicom):
         pixels = dicom.pixel_array
+
+        pixels = np.expand_dims(pixels, axis=-1)
         return pixels
     
     #Resizes the pixel data to a given input size.

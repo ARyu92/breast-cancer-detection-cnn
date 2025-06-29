@@ -81,7 +81,7 @@ class test_image_processor(unittest.TestCase):
 
     #Tests that the dataset can be generated.
     def test_generate_dataset(self):
-        X, Y, Z = self.processor.generate_dataset(self.data_directory_path + "mass_case_description_test_set.csv")
+        X, Y, Z = self.processor.generate_dataset(self.data_directory_path + "all_data.csv")
 
         self.assertTrue((len(X) == 50) & (len(Y) == 50) & (len(Z) == 50))
 
