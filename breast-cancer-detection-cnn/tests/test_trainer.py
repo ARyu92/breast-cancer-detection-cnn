@@ -9,7 +9,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 's
 from training.trainer import Trainer
 
 
-class test_image_processor(unittest.TestCase):
+class test_trainer(unittest.TestCase):
 
     def setUp(self):
         self.trainer = Trainer()
@@ -23,21 +23,22 @@ class test_image_processor(unittest.TestCase):
         return
     
     def test_split_data(self):
-        self.trainer.retrieve_data("../data/Data/manifest/all_data.csv")
-        self.trainer.split_data()
-        training_X_len = len(self.trainer.X_train)
-        training_Y_len = len(self.trainer.Y_train)
-        training_Z_len = len(self.trainer.Y_train)
+        X, Y, Z = self.trainer.retrieve_data("../data/Data/manifest/all_data.csv")
+        X_train, Y_train, Z_train, X_val, Y_val, Z_val, X_test, Y_test, Z_test = self.trainer.split_data(X,Y,Z)
+        
+        training_X_len = len(X_train)
+        training_Y_len = len(Y_train)
+        training_Z_len = len(Z_train)
 
-        test_X_len = len(self.trainer.X_test)
-        test_Y_len = len(self.trainer.Y_test)
-        test_Z_len = len(self.trainer.Z_test)
+        test_X_len = len(X_test)
+        test_Y_len = len(Y_test)
+        test_Z_len = len(Z_test)
 
-        val_X_len = len(self.trainer.X_val)
-        val_Y_len = len(self.trainer.Y_val)
-        val_Z_len = len(self.trainer.Z_val)
+        val_X_len = len(X_val)
+        val_Y_len = len(Y_val)
+        val_Z_len = len(Z_val)
 
-        tensor_length = len (self.trainer.X)
+        tensor_length = len (X)
         self.assertTrue((training_X_len == tensor_length * 0.7)
                         & (training_Y_len == tensor_length* 0.7)
                         & (training_Z_len == tensor_length * 0.7)

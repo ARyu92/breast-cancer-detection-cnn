@@ -36,7 +36,7 @@ class Model:
             metrics = ["accuracy"]
         )
     
-    def train(self, training_data, training_labels, validation_data, validation_label, epochs = 10, batch_size = 32):
+    def train(self, training_data, training_labels, validation_data, validation_label, epochs = 40, batch_size = 16):
         return self.neural_network.fit(
             x = training_data,
             y = training_labels,
@@ -44,3 +44,9 @@ class Model:
             epochs = epochs,
             batch_size= batch_size
         )
+    
+    def evaluate(self, data, labels):
+        loss, accuracy = self.neural_network.evaluate(data, labels, verbose=2)
+        print(f"Test Loss: {loss:.4f}")
+        print(f"Test Accuracy: {accuracy:.4f}")
+        return
