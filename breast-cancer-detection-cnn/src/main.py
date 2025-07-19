@@ -1,10 +1,10 @@
 import streamlit as st
-
+from ui.GUI import GUI
 
 class MammogramApplication:
     def __init__(self):
-        st.title("Breast Cancer Detection")
         self.main()
+        gui = GUI()
 
     def main(self):
         return
