@@ -12,7 +12,7 @@ class GUI:
         head_pad1, head_col1, head_pad2,  = st.columns([1.5, 1, 7.5])
 
         with head_col1:
-            st.button("Load Image", use_container_width= True, )
+            st.button("Load Image", use_container_width= True)
 
         #Main body
         placeholder_img = np.zeros((400, 400, 3), dtype=np.uint8)
