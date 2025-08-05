@@ -12,41 +12,25 @@ class test_image_processor(unittest.TestCase):
 
     def setUp(self):
         self.processor = ImageProcessor()
-        self.sample_image_path = "../data/Data/manifest/CBIS-DDSM/Calc-Test_P_00038_LEFT_CC_1/08-29-2017-DDSM-NA-94942/1.000000-ROI mask images-18515/1-1.dcm"
-        self.data_directory_path = "../data/Data/manifest/CBIS-DDSM/"
+    
+    #This tests checks that the import_image_tensor exists
+    def test_import_image_tensor(self):
+        self.processor.import_image_tensor(file_path = "blah")
 
+    #This tests checks that the import image tensor function can find a file path given a valid filepath. 
+    def test_import_image_tensor_1(self):
+        path = "../data/Processed Data/P_00001_LEFT.npy"
+        image_tensor = self.processor.import_image_tensor(path)
 
-    #Tests that this class object exists.
-    def test_class_exist(self):
-        self.assertIsNotNone(self.processor)
+        self.assertIsNotNone(image_tensor, msg = "Image tensor holds None")
 
+    #This test checks that the imported image tensor is of correct shape.
+    def test_import_image_tensor_2(self):
+        path = "../data/Processed Data/P_00001_LEFT.npy"
+        image_tensor = self.processor.import_image_tensor(path)
 
-    #Test a function that imports a DICOM image.
-    def test_import_image(self):
-        images = self.processor.find_images(self.data_directory_path)
-        self.assertNotEqual(self.processor.import_image(images[0]), None)
-
-
-    #Test import function returns an dicom file type.
-    def test_import_image_returns_image(self):
-        dicom = self.processor.import_image(self.sample_image_path)
-        
-        self.assertIsInstance(dicom, pydicom.dataset.FileDataset)
-
-    #This tests that the function can take in a dicom object and return the pixel data. 
-    def test_pixel_data_retrieval(self):
-        dicom = self.processor.import_image(self.sample_image_path)
-        image = self.processor.get_pixel_data(dicom)
-
-        self.assertEqual(type(image), np.ndarray)
-
-    def test_resize_image(self):
-        dicom = self.processor.import_image(self.sample_image_path)
-        image = self.processor.get_pixel_data(dicom)
-        image = self.processor.resize_image(image, dimensions = (300,300))
-
-        self.assertEqual (len(image) * len (image[0]), 90000)
-
+        expected_shape = (2,400,400)
+        self.assertEqual(image_tensor.shape, expected_shape)
 
 if __name__ == "__main__":
     unittest.main()
