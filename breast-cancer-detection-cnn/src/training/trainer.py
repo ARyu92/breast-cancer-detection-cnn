@@ -73,9 +73,6 @@ class Trainer:
 
         self.X_train, self.Y_train, self.X_val, self.Y_val, self.X_test, self.Y_test = self.split_data(self.X, self.Y)
 
-
-        #self.shuffle_data()
-        #self.split_data()
         self.X_train = np.stack(self.X_train)
         self.Y_train = np.array(self.Y_train)
 
@@ -85,9 +82,7 @@ class Trainer:
         self.X_test = np.stack(self.X_test)
         self.Y_test = np.array(self.Y_test)
         
-        #for i in range(15, 17):
-        #    plt.imshow(self.X[i],cmap = "gray" )
-        #    plt.show()
+
         print("Training Set:")
         print(f"  X_train: {np.array(self.X_train).shape}")
         print(f"  Y_train: {np.array(self.Y_train).shape}")
@@ -103,27 +98,24 @@ class Trainer:
         print("Train:", np.bincount(self.Y_train))
         print("Val:  ", np.bincount(self.Y_val))
 
-
-
-
         layer_input = [
             # Block 1
             {"layer_type": "Conv2D", "filters": 32, "kernel": (3, 3), "activation": "relu"},
             {"layer_type": "BatchNorm"},
             {"layer_type": "Conv2D", "filters": 32, "kernel": (3, 3), "activation": "relu"},
             {"layer_type": "BatchNorm"},
-            {"layer_type": "MaxPool", "pool_size": (2, 2)},  # 400 → 200
+            {"layer_type": "MaxPool", "pool_size": (2, 2)},
 
             # Block 2
             {"layer_type": "Conv2D", "filters": 64, "kernel": (3, 3), "activation": "relu"},
             {"layer_type": "BatchNorm"},
-            {"layer_type": "Conv2D", "filters": 64, "kernel": (3, 3), "activation": "relu", "stride": 2},  # 200 → 100
+            {"layer_type": "Conv2D", "filters": 64, "kernel": (3, 3), "activation": "relu", "stride": 2},
             {"layer_type": "BatchNorm"},
 
             # Block 3
             {"layer_type": "Conv2D", "filters": 128, "kernel": (3, 3), "activation": "relu"},
             {"layer_type": "BatchNorm"},
-            {"layer_type": "Conv2D", "filters": 128, "kernel": (3, 3), "activation": "relu", "stride": 2},  # 100 → 50
+            {"layer_type": "Conv2D", "filters": 128, "kernel": (3, 3), "activation": "relu", "stride": 2},
             {"layer_type": "BatchNorm"},
 
             # Output Head
@@ -131,10 +123,7 @@ class Trainer:
             {"layer_type": "Dense", "units": 128, "activation": "relu"},
             {"layer_type": "Dropout", "rate": 0.3},
             {"layer_type": "Dense", "units": 1, "activation": "sigmoid", "dtype": "float32"}
-]
-
-
-
+        ]
 
         self.model.build_network(layer_input)
         self.model.compile()
@@ -142,3 +131,5 @@ class Trainer:
         self.model.train(self.X_train, self.Y_train, self.X_val, self.Y_val)      
 
         self.model.evaluate(self.X_test, self.Y_test)
+
+        self.model.save_model("../trained_models/", "model_test")
