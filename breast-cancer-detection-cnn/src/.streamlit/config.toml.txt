@@ -1,0 +1,9 @@
+[server]
+showDeployButton = false
+
+[client]
+toolbarMode = "none"
+
+[theme]
+base = "dark"
+primaryColor = "#0E7C86"
