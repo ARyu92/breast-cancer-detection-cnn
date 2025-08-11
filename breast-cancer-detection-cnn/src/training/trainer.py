@@ -4,6 +4,10 @@ import numpy as np
 import hashlib
 import numpy as np 
 import matplotlib.pyplot as plt
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+TRAINED_MODELS_DIR = PROJECT_ROOT / "trained_models"
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
@@ -106,21 +110,11 @@ class Trainer:
             {"layer_type": "BatchNorm"},
             {"layer_type": "MaxPool", "pool_size": (2, 2)},
 
-            # Block 2
-            {"layer_type": "Conv2D", "filters": 64, "kernel": (3, 3), "activation": "relu"},
-            {"layer_type": "BatchNorm"},
-            {"layer_type": "Conv2D", "filters": 64, "kernel": (3, 3), "activation": "relu", "stride": 2},
-            {"layer_type": "BatchNorm"},
-
-            # Block 3
-            {"layer_type": "Conv2D", "filters": 128, "kernel": (3, 3), "activation": "relu"},
-            {"layer_type": "BatchNorm"},
-            {"layer_type": "Conv2D", "filters": 128, "kernel": (3, 3), "activation": "relu", "stride": 2},
             {"layer_type": "BatchNorm"},
 
             # Output Head
             {"layer_type": "GlobalAvgPool"},
-            {"layer_type": "Dense", "units": 128, "activation": "relu"},
+            {"layer_type": "Dense", "units": 10, "activation": "relu"},
             {"layer_type": "Dropout", "rate": 0.3},
             {"layer_type": "Dense", "units": 1, "activation": "sigmoid", "dtype": "float32"}
         ]
@@ -132,4 +126,4 @@ class Trainer:
 
         self.model.evaluate(self.X_test, self.Y_test)
 
-        self.model.save_model("../trained_models/", "model_test")
+        self.model.save_model("model_test")

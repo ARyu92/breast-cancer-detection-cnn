@@ -1,16 +1,16 @@
 from tensorflow import keras
 from tensorflow.keras import layers
-import sys
-import os
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
+from pathlib import Path
 
 class Model:
     def __init__(self):
         self.neural_network = None
-        return
-    
-    #Initialize the model
+
+        # Always set project root relative to this file's location
+        self.PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+        self.TRAINED_MODELS_DIR = self.PROJECT_ROOT / "trained_models"
+
+
     def build_network(self, layer_input):
         self.neural_network = keras.Sequential()
         self.neural_network.add(layers.Input(shape=(640, 640, 2)))
@@ -38,9 +38,7 @@ class Model:
                 ))
 
             elif layer["layer_type"] == "Dropout":
-                self.neural_network.add(layers.Dropout(
-                    rate=layer["rate"]
-                ))
+                self.neural_network.add(layers.Dropout(rate=layer["rate"]))
 
             elif layer["layer_type"] == "BatchNorm":
                 self.neural_network.add(layers.BatchNormalization())
@@ -52,46 +50,46 @@ class Model:
                 self.neural_network.add(layers.GlobalAveragePooling2D())
 
         return self.neural_network
-    
-    #Compile the neural network model
-    def compile(self, learning_rate = 1e-4):
+
+    def compile(self, learning_rate=1e-4):
         self.neural_network.compile(
-            optimizer = keras.optimizers.Adam(learning_rate),
-            loss = "binary_crossentropy",
-            metrics = ["accuracy"]
+            optimizer=keras.optimizers.Adam(learning_rate),
+            loss="binary_crossentropy",
+            metrics=["accuracy"]
         )
-    
-    def train(self, training_data, training_labels, validation_data, validation_label, epochs = 5, batch_size = 2):
+
+    def train(self, training_data, training_labels, validation_data, validation_label, epochs=5, batch_size=2):
         return self.neural_network.fit(
-            x = training_data,
-            y = training_labels,
-            validation_data = (validation_data, validation_label),
-            epochs = epochs,
-            batch_size= batch_size
+            x=training_data,
+            y=training_labels,
+            validation_data=(validation_data, validation_label),
+            epochs=epochs,
+            batch_size=batch_size
         )
-    
+
     def evaluate(self, data, labels):
-        loss, accuracy = self.neural_network.evaluate(data, labels, verbose=2, batch_size = 1)
+        loss, accuracy = self.neural_network.evaluate(data, labels, verbose=2, batch_size=1)
         print(f"Test Loss: {loss:.4f}")
         print(f"Test Accuracy: {accuracy:.4f}")
-        return
-    
-    #This function saves the model to a given path.
-    def save_model(self, path, model_name):
-        base_path = path + model_name
-        model_path = base_path
-        name = model_name
-        counter = 1
 
-        while os.path.exists(model_path):
+    def save_model(self, model_name: str) -> str:
+
+        base = self.TRAINED_MODELS_DIR
+        base.mkdir(parents=True, exist_ok=True)
+
+        name = model_name
+        out_dir = base / name
+        counter = 1
+        while out_dir.exists():
             name = f"{model_name}_{counter}"
-            model_path = os.path.join(path, name)
+            out_dir = base / name
             counter += 1
 
-        os.makedirs(model_path)
-        self.neural_network.save(f"{model_path}/{name}.keras")
-        return
-    
-    #This function loads the model at a given path
+        out_dir.mkdir(parents=True, exist_ok=False)
+        out_path = out_dir / f"{name}.keras"
+
+        self.neural_network.save(str(out_path))
+        return str(out_path)
+
     def load_model(self, path):
         return keras.models.load_model(path)

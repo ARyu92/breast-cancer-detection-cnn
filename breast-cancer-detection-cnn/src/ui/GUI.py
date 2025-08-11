@@ -28,7 +28,8 @@ class GUI:
         tool_pad1, tool_col1, tool_col2, tool_pad2,  = st.columns([1.5, 1, 1, 6.5])
 
         with tool_col1:
-            st.button("Load Image", use_container_width= True, key = "load_immage_button")
+            if st.button("Load Image", use_container_width= True, key = "load_immage_button"):
+                self.load_image_button()
 
         with tool_col2:
             st.button("Load Model", use_container_width= True, key = "load_model_button")
@@ -74,3 +75,6 @@ class GUI:
             st.markdown("")
             st.markdown("")
             st.button("Benign", use_container_width= True, key = "benign_marker_button")
+
+    def load_image_button(self):
+        placeholder_img = st.file_uploader("Upload an image in DICOM format", type = ["dcm"])
