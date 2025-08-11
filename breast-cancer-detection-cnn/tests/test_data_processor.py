@@ -56,6 +56,13 @@ class test_data_processor(unittest.TestCase):
         self.assertEqual(len(X), 1142)
         
 
+    #This tests that the function takes in a dicom object and returns its pixel data.
+    def test_extract_pixels_from_dicom(self):
+        #Import sample dicom file
+        dicom = pydicom.dcmread("../data/Data/manifest/CBIS-DDSM/Calc-Test_P_00038_LEFT_CC/08-29-2017-DDSM-NA-96009/1.000000-full mammogram images-63992/1-1.dcm") 
+        pixel_data = self.processor.extract_pixels_from_dicom(dicom)
+        self.assertIsInstance(pixel_data, np.ndarray)
+
 
 
 
