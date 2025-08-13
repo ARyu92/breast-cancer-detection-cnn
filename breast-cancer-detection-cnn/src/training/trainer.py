@@ -5,6 +5,8 @@ import hashlib
 import numpy as np 
 import matplotlib.pyplot as plt
 from pathlib import Path
+from keras import regularizers
+
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 TRAINED_MODELS_DIR = PROJECT_ROOT / "trained_models"
@@ -70,12 +72,14 @@ class Trainer:
 
     #This function performs the entire training pipeline
     def training_pipeline(self):
-        #Retrieve data.
-        self.X, self.Y = self.retrieve_data("../data/meta_data.json")
+        # Retrieve data.
+        #self.X, self.Y = self.retrieve_data("../data/meta_data.json")
 
-        self.X, self.Y = self.shuffle_data(self.X, self.Y, random_seed = 250)
+        #self.X, self.Y = self.shuffle_data(self.X, self.Y, random_seed=250)
 
-        self.X_train, self.Y_train, self.X_val, self.Y_val, self.X_test, self.Y_test = self.split_data(self.X, self.Y)
+        #self.X_train, self.Y_train, self.X_val, self.Y_val, self.X_test, self.Y_test = self.split_data(self.X, self.Y)
+        self.X_train, self.Y_train = self.retrieve_data("../data/meta_train.json")
+        self.X_val, self.Y_val = self.retrieve_data("../data/meta_test.json")
 
         self.X_train = np.stack(self.X_train)
         self.Y_train = np.array(self.Y_train)
@@ -83,9 +87,17 @@ class Trainer:
         self.X_val = np.stack(self.X_val)
         self.Y_val = np.array(self.Y_val)
 
-        self.X_test = np.stack(self.X_test)
-        self.Y_test = np.array(self.Y_test)
-        
+        #self.X_test = np.stack(self.X_test)
+        #self.Y_test = np.array(self.Y_test)
+
+        #Last Z-score normalization
+        mean = self.X_train.mean(axis=(0, 1, 2), keepdims=True).astype(np.float32)
+        std  = (self.X_train.std(axis=(0, 1, 2), keepdims=True) + 1e-6).astype(np.float32)
+
+        # Apply z-score normalization to all sets
+        self.X_train = (self.X_train - mean) / std
+        self.X_val   = (self.X_val   - mean) / std
+        #self.X_test  = (self.X_test  - mean) / std
 
         print("Training Set:")
         print(f"  X_train: {np.array(self.X_train).shape}")
@@ -96,34 +108,63 @@ class Trainer:
         print(f"  Y_val: {np.array(self.Y_val).shape}")
 
         print("Test Set:")
-        print(f"  X_test: {np.array(self.X_test).shape}")
-        print(f"  Y_test: {np.array(self.Y_test).shape}")
+        #print(f"  X_test: {np.array(self.X_test).shape}")
+        #print(f"  Y_test: {np.array(self.Y_test).shape}")
 
         print("Train:", np.bincount(self.Y_train))
         print("Val:  ", np.bincount(self.Y_val))
 
+
+        wd = regularizers.l2(5e-4)
+
         layer_input = [
-            # Block 1
-            {"layer_type": "Conv2D", "filters": 32, "kernel": (3, 3), "activation": "relu"},
+            # Block 1: 400 -> 200
+            {"layer_type": "Conv2D", "filters": 16,  "kernel": (3, 3), "activation": "relu", "padding": "same", "kernel_regularizer": wd},
             {"layer_type": "BatchNorm"},
-            {"layer_type": "Conv2D", "filters": 32, "kernel": (3, 3), "activation": "relu"},
+            {"layer_type": "Conv2D", "filters": 16,  "kernel": (3, 3), "activation": "relu", "padding": "same", "kernel_regularizer": wd},
             {"layer_type": "BatchNorm"},
             {"layer_type": "MaxPool", "pool_size": (2, 2)},
 
+            # Block 2: 200 -> 100
+            {"layer_type": "Conv2D", "filters": 32,  "kernel": (3, 3), "activation": "relu", "padding": "same", "kernel_regularizer": wd},
             {"layer_type": "BatchNorm"},
+            {"layer_type": "Conv2D", "filters": 32,  "kernel": (3, 3), "activation": "relu", "padding": "same", "stride": 2, "kernel_regularizer": wd},
+            {"layer_type": "BatchNorm"},
+            {"layer_type": "Dropout", "rate": 0.35},
 
-            # Output Head
-            {"layer_type": "GlobalAvgPool"},
-            {"layer_type": "Dense", "units": 10, "activation": "relu"},
+            # Block 3: 100 -> 50
+            {"layer_type": "Conv2D", "filters": 64, "kernel": (3, 3), "activation": "relu", "padding": "same", "kernel_regularizer": wd},
+            {"layer_type": "BatchNorm"},
+            {"layer_type": "Conv2D", "filters": 64, "kernel": (3, 3), "activation": "relu", "padding": "same", "stride": 2, "kernel_regularizer": wd},
+            {"layer_type": "BatchNorm"},
+            {"layer_type": "Dropout", "rate": 0.35},
+
+            # Block 4: 50 -> 25
+            {"layer_type": "Conv2D", "filters": 128, "kernel": (3, 3), "activation": "relu", "padding": "same", "kernel_regularizer": wd},
+            {"layer_type": "BatchNorm"},
+            {"layer_type": "Conv2D", "filters": 128, "kernel": (3, 3), "activation": "relu", "padding": "same", "stride": 2, "kernel_regularizer": wd},
+            {"layer_type": "BatchNorm"},
             {"layer_type": "Dropout", "rate": 0.3},
+
+            # Bottleneck
+            {"layer_type": "Conv2D", "filters": 256, "kernel": (3, 3), "activation": "relu", "padding": "same", "kernel_regularizer": wd},
+            {"layer_type": "BatchNorm"},
+            {"layer_type": "Dropout", "rate": 0.4},
+
+            # Head
+            {"layer_type": "GlobalAvgPool"},
+            {"layer_type": "Dense", "units": 128, "activation": "relu", "kernel_regularizer": wd},
+            {"layer_type": "Dropout", "rate": 0.6},
             {"layer_type": "Dense", "units": 1, "activation": "sigmoid", "dtype": "float32"}
         ]
+
+
 
         self.model.build_network(layer_input)
         self.model.compile()
 
-        self.model.train(self.X_train, self.Y_train, self.X_val, self.Y_val)      
-
-        self.model.evaluate(self.X_test, self.Y_test)
-
+        self.model.train(self.X_train, self.Y_train, self.X_val, self.Y_val)
+        
+        #self.model.evaluate(self.X_test, self.Y_test)
         self.model.save_model("model_test")
+

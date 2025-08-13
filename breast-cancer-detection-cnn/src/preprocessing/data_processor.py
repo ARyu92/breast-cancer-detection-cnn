@@ -40,7 +40,9 @@ class dataProcessor:
         Y = []
 
         for data in self.meta_data:
-            image_path = "../data/Processed Data/" + data["patient_id"] + "_" + data["laterality"] + ".npy"
+            #image_path = "../data/Processed Data/" + data["patient_id"] + "_" + data["laterality"] + ".npy"
+            image_path = data["processed_path"]
+            #print(data)
             image_pair = self.image_processor.import_image_tensor(image_path)
 
             X.append(image_pair)
