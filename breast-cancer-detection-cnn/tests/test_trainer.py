@@ -9,7 +9,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 's
 from training.trainer import Trainer
 
 
-class test_image_processor(unittest.TestCase):
+class test_trainer(unittest.TestCase):
 
     def setUp(self):
         self.trainer = Trainer()

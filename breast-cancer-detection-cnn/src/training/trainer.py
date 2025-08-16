@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
 from keras import regularizers
+import matplotlib.pyplot as plt
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -67,19 +68,53 @@ class Trainer:
         Y_test = Y[split_index2: ]
 
         return X_train, Y_train, X_val, Y_val, X_test, Y_test
+    
+    #This function takes in the training history details and plots it on a graph.
+    def plot_training_history(self, history):
+        # Extract the history dictionary
+        hist = history.history
+        epochs = range(1, len(hist['loss']) + 1)
+
+        # Plot accuracy
+        plt.figure(figsize=(12, 5))
+
+        plt.subplot(1, 2, 1)
+        if 'accuracy' in hist:
+            plt.plot(epochs, hist['accuracy'], label='Training Accuracy')
+        if 'val_accuracy' in hist:
+            plt.plot(epochs, hist['val_accuracy'], label='Validation Accuracy')
+        plt.xlabel('Epochs')
+        plt.ylabel('Accuracy')
+        plt.title('Training & Validation Accuracy')
+        plt.legend()
+        plt.grid(True)
+
+        # Plot loss
+        plt.subplot(1, 2, 2)
+        plt.plot(epochs, hist['loss'], label='Training Loss')
+        if 'val_loss' in hist:
+            plt.plot(epochs, hist['val_loss'], label='Validation Loss')
+        plt.xlabel('Epochs')
+        plt.ylabel('Loss')
+        plt.title('Training & Validation Loss')
+        plt.legend()
+        plt.grid(True)
+
+        plt.tight_layout()
+        plt.show()
 
 
 
     #This function performs the entire training pipeline
     def training_pipeline(self):
         # Retrieve data.
-        #self.X, self.Y = self.retrieve_data("../data/meta_data.json")
+        self.X, self.Y = self.retrieve_data("../data/meta_data.json")
 
-        #self.X, self.Y = self.shuffle_data(self.X, self.Y, random_seed=250)
+        self.X, self.Y = self.shuffle_data(self.X, self.Y, random_seed=250)
 
-        #self.X_train, self.Y_train, self.X_val, self.Y_val, self.X_test, self.Y_test = self.split_data(self.X, self.Y)
-        self.X_train, self.Y_train = self.retrieve_data("../data/meta_train.json")
-        self.X_val, self.Y_val = self.retrieve_data("../data/meta_test.json")
+        self.X_train, self.Y_train, self.X_val, self.Y_val, self.X_test, self.Y_test = self.split_data(self.X, self.Y)
+        #self.X_train, self.Y_train = self.retrieve_data("../data/meta_train.json")
+        #self.X_val, self.Y_val = self.retrieve_data("../data/meta_test.json")
 
         self.X_train = np.stack(self.X_train)
         self.Y_train = np.array(self.Y_train)
@@ -87,8 +122,8 @@ class Trainer:
         self.X_val = np.stack(self.X_val)
         self.Y_val = np.array(self.Y_val)
 
-        #self.X_test = np.stack(self.X_test)
-        #self.Y_test = np.array(self.Y_test)
+        self.X_test = np.stack(self.X_test)
+        self.Y_test = np.array(self.Y_test)
 
         #Last Z-score normalization
         mean = self.X_train.mean(axis=(0, 1, 2), keepdims=True).astype(np.float32)
@@ -97,7 +132,7 @@ class Trainer:
         # Apply z-score normalization to all sets
         self.X_train = (self.X_train - mean) / std
         self.X_val   = (self.X_val   - mean) / std
-        #self.X_test  = (self.X_test  - mean) / std
+        self.X_test  = (self.X_test  - mean) / std
 
         print("Training Set:")
         print(f"  X_train: {np.array(self.X_train).shape}")
@@ -108,8 +143,8 @@ class Trainer:
         print(f"  Y_val: {np.array(self.Y_val).shape}")
 
         print("Test Set:")
-        #print(f"  X_test: {np.array(self.X_test).shape}")
-        #print(f"  Y_test: {np.array(self.Y_test).shape}")
+        print(f"  X_test: {np.array(self.X_test).shape}")
+        print(f"  Y_test: {np.array(self.Y_test).shape}")
 
         print("Train:", np.bincount(self.Y_train))
         print("Val:  ", np.bincount(self.Y_val))
@@ -163,8 +198,9 @@ class Trainer:
         self.model.build_network(layer_input)
         self.model.compile()
 
-        self.model.train(self.X_train, self.Y_train, self.X_val, self.Y_val)
+        history = self.model.train(self.X_train, self.Y_train, self.X_val, self.Y_val)
+        self.plot_training_history(history)
         
-        #self.model.evaluate(self.X_test, self.Y_test)
+        self.model.evaluate(self.X_test, self.Y_test)
         self.model.save_model("model_test")
 

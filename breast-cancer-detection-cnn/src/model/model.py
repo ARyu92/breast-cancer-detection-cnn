@@ -94,7 +94,7 @@ class Model:
         metrics=["accuracy", metrics.AUC(name="auc")]
     )
 
-    def train(self, training_data, training_labels, validation_data, validation_label, epochs=100, batch_size=32):
+    def train(self, training_data, training_labels, validation_data, validation_label, epochs=50, batch_size=32):
         return self.neural_network.fit(
             x=training_data,
             y=training_labels,
@@ -104,10 +104,9 @@ class Model:
         )
 
     def evaluate(self, data, labels):
-        loss, accuracy = self.neural_network.evaluate(data, labels, verbose=2, batch_size=1)
-        print(f"Test Loss: {loss:.4f}")
-        print(f"Test Accuracy: {accuracy:.4f}")
-
+        results = self.neural_network.evaluate(data, labels, verbose=2, batch_size=1, return_dict = True)
+        print (results)
+        return results
     def save_model(self, model_name: str) -> str:
 
         base = self.TRAINED_MODELS_DIR
