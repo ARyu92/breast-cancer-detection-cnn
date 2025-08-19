@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 from keras import regularizers
 import matplotlib.pyplot as plt
+from tensorflow.keras import regularizers
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -74,7 +75,6 @@ class Trainer:
     #This function performs the entire training pipeline
     def training_pipeline(self):
         # Retrieve data.
-        
         self.X_train, self.Y_train, self.X_val, self.Y_val,self.X_test,self.Y_test = self.data_processor.prepare_tensors("../data/meta_data.csv")
 
         #Last Z-score normalization
@@ -102,39 +102,38 @@ class Trainer:
         print("Val:  ", np.bincount(self.Y_val))
 
 
-        wd = regularizers.l2(5e-4)
-
-        
         layer_input = [
-                    # Block 1
-                    {"layer_type": "Conv2D", "filters": 32, "kernel": (3, 3), "activation": "relu"},
-                    {"layer_type": "BatchNorm"},
-                    {"layer_type": "Conv2D", "filters": 32, "kernel": (3, 3), "activation": "relu"},
-                    {"layer_type": "BatchNorm"},
-                    {"layer_type": "MaxPool", "pool_size": (2, 2)},  # 400 → 200
-                    # Block 2
-                    {"layer_type": "Conv2D", "filters": 64, "kernel": (3, 3), "activation": "relu"},
-                    {"layer_type": "BatchNorm"},
-                    {"layer_type": "Conv2D", "filters": 64, "kernel": (3, 3), "activation": "relu", "stride": 2},  # 200 → 100
-                    {"layer_type": "BatchNorm"},
-                    # Block 3
-                    {"layer_type": "Conv2D", "filters": 128, "kernel": (3, 3), "activation": "relu"},
-                    {"layer_type": "BatchNorm"},
-                    {"layer_type": "Conv2D", "filters": 128, "kernel": (3, 3), "activation": "relu", "stride": 2},  # 100 → 50
-                    {"layer_type": "BatchNorm"},
-                    # Output Head
-                    {"layer_type": "GlobalAvgPool"},
-                    {"layer_type": "Dense", "units": 128, "activation": "relu"},
-                    {"layer_type": "Dropout", "rate": 0.3},
-                    {"layer_type": "Dense", "units": 1, "activation": "sigmoid", "dtype": "float32"}
-        ]
+            # Block 1
+            {"layer_type": "Conv2D", "filters": 32, "kernel": (3, 3),
+            "activation": "relu", "kernel_regularizer": regularizers.l2(1e-4)},
+            {"layer_type": "BatchNorm"},
+            {"layer_type": "Conv2D", "filters": 32, "kernel": (3, 3),
+            "activation": "relu", "kernel_regularizer": regularizers.l2(1e-4)},
+            {"layer_type": "BatchNorm"},
+            {"layer_type": "MaxPool", "pool_size": (2, 2)},
 
+            # Block 2
+            {"layer_type": "Conv2D", "filters": 64, "kernel": (3, 3),
+            "activation": "relu", "kernel_regularizer": regularizers.l2(1e-4)},
+            {"layer_type": "BatchNorm"},
+            {"layer_type": "Conv2D", "filters": 64, "kernel": (3, 3),
+            "activation": "relu", "stride": 2, "kernel_regularizer": regularizers.l2(1e-4)},
+            {"layer_type": "BatchNorm"},
 
+            # Block 3
+            {"layer_type": "Conv2D", "filters": 128, "kernel": (3, 3),
+            "activation": "relu", "kernel_regularizer": regularizers.l2(1e-4)},
+            {"layer_type": "BatchNorm"},
+            {"layer_type": "Conv2D", "filters": 128, "kernel": (3, 3),
+            "activation": "relu", "stride": 2, "kernel_regularizer": regularizers.l2(1e-4)},
+            {"layer_type": "BatchNorm"},
+            # Output head
+]
 
         self.model.build_network(layer_input)
         self.model.compile()
 
-        history = self.model.train(self.X_train, self.Y_train, self.X_val, self.Y_val, epochs = 300)
+        history = self.model.train(self.X_train, self.Y_train, self.X_val, self.Y_val, epochs = 25)
         self.plot_training_history(history)
         
         self.model.evaluate(self.X_test, self.Y_test)
