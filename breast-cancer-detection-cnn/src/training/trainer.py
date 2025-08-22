@@ -6,6 +6,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
 from keras import regularizers
+import matplotlib.pyplot as plt
+from tensorflow.keras import regularizers
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -36,59 +38,44 @@ class Trainer:
 
         return
     
-    def retrieve_data(self, path):
-        X, Y = self.data_processor.prepare_tensors(path)
-        return X, Y
+    #This function takes in the training history details and plots it on a graph.
+    def plot_training_history(self, history):
+        # Extract the history dictionary
+        hist = history.history
+        epochs = range(1, len(hist['loss']) + 1)
 
-    def shuffle_data(self, X, Y, random_seed = 5):
-        indices = np.arange(len(X))
-        np.random.seed(random_seed)
-        np.random.shuffle(indices)
-        X = [X[i] for i in indices]
-        Y = [Y[i] for i in indices]
+        # Plot accuracy
+        plt.figure(figsize=(12, 5))
 
-        return X, Y
+        plt.subplot(1, 2, 1)
+        if 'accuracy' in hist:
+            plt.plot(epochs, hist['accuracy'], label='Training Accuracy')
+        if 'val_accuracy' in hist:
+            plt.plot(epochs, hist['val_accuracy'], label='Validation Accuracy')
+        plt.xlabel('Epochs')
+        plt.ylabel('Accuracy')
+        plt.title('Training & Validation Accuracy')
+        plt.legend()
+        plt.grid(True)
 
-    def split_data(self, X, Y, train_val_test_split = [0.7, 0.9]):
-        #Split the data 70 to training, 20 to validation, 10 for testing.
-        split_index1 = int(train_val_test_split[0] * len(X))
-        split_index2 = int(train_val_test_split[1] * len(X))
+        # Plot loss
+        plt.subplot(1, 2, 2)
+        plt.plot(epochs, hist['loss'], label='Training Loss')
+        if 'val_loss' in hist:
+            plt.plot(epochs, hist['val_loss'], label='Validation Loss')
+        plt.xlabel('Epochs')
+        plt.ylabel('Loss')
+        plt.title('Training & Validation Loss')
+        plt.legend()
+        plt.grid(True)
 
-        #Train gets assigned to the first split, 70% by default
-        X_train = X[:split_index1]
-        Y_train = Y[:split_index1]
-
-        #Train gets assigned to the second split, 20% by default
-        X_val = X[split_index1:split_index2]
-        Y_val = Y[split_index1:split_index2]
-
-        #Train gets assigned to the last split, 10% by default
-        X_test = X[split_index2: ]
-        Y_test = Y[split_index2: ]
-
-        return X_train, Y_train, X_val, Y_val, X_test, Y_test
-
-
+        plt.tight_layout()
+        plt.show()
 
     #This function performs the entire training pipeline
     def training_pipeline(self):
         # Retrieve data.
-        #self.X, self.Y = self.retrieve_data("../data/meta_data.json")
-
-        #self.X, self.Y = self.shuffle_data(self.X, self.Y, random_seed=250)
-
-        #self.X_train, self.Y_train, self.X_val, self.Y_val, self.X_test, self.Y_test = self.split_data(self.X, self.Y)
-        self.X_train, self.Y_train = self.retrieve_data("../data/meta_train.json")
-        self.X_val, self.Y_val = self.retrieve_data("../data/meta_test.json")
-
-        self.X_train = np.stack(self.X_train)
-        self.Y_train = np.array(self.Y_train)
-
-        self.X_val = np.stack(self.X_val)
-        self.Y_val = np.array(self.Y_val)
-
-        #self.X_test = np.stack(self.X_test)
-        #self.Y_test = np.array(self.Y_test)
+        self.X_train, self.Y_train, self.X_val, self.Y_val,self.X_test,self.Y_test = self.data_processor.prepare_tensors("../data/meta_data.csv")
 
         #Last Z-score normalization
         mean = self.X_train.mean(axis=(0, 1, 2), keepdims=True).astype(np.float32)
@@ -97,7 +84,7 @@ class Trainer:
         # Apply z-score normalization to all sets
         self.X_train = (self.X_train - mean) / std
         self.X_val   = (self.X_val   - mean) / std
-        #self.X_test  = (self.X_test  - mean) / std
+        self.X_test  = (self.X_test  - mean) / std
 
         print("Training Set:")
         print(f"  X_train: {np.array(self.X_train).shape}")
@@ -108,63 +95,47 @@ class Trainer:
         print(f"  Y_val: {np.array(self.Y_val).shape}")
 
         print("Test Set:")
-        #print(f"  X_test: {np.array(self.X_test).shape}")
-        #print(f"  Y_test: {np.array(self.Y_test).shape}")
+        print(f"  X_test: {np.array(self.X_test).shape}")
+        print(f"  Y_test: {np.array(self.Y_test).shape}")
 
         print("Train:", np.bincount(self.Y_train))
         print("Val:  ", np.bincount(self.Y_val))
 
 
-        wd = regularizers.l2(5e-4)
-
         layer_input = [
-            # Block 1: 400 -> 200
-            {"layer_type": "Conv2D", "filters": 16,  "kernel": (3, 3), "activation": "relu", "padding": "same", "kernel_regularizer": wd},
+            # Block 1
+            {"layer_type": "Conv2D", "filters": 32, "kernel": (3, 3),
+            "activation": "relu", "kernel_regularizer": regularizers.l2(1e-4)},
             {"layer_type": "BatchNorm"},
-            {"layer_type": "Conv2D", "filters": 16,  "kernel": (3, 3), "activation": "relu", "padding": "same", "kernel_regularizer": wd},
+            {"layer_type": "Conv2D", "filters": 32, "kernel": (3, 3),
+            "activation": "relu", "kernel_regularizer": regularizers.l2(1e-4)},
             {"layer_type": "BatchNorm"},
             {"layer_type": "MaxPool", "pool_size": (2, 2)},
 
-            # Block 2: 200 -> 100
-            {"layer_type": "Conv2D", "filters": 32,  "kernel": (3, 3), "activation": "relu", "padding": "same", "kernel_regularizer": wd},
+            # Block 2
+            {"layer_type": "Conv2D", "filters": 64, "kernel": (3, 3),
+            "activation": "relu", "kernel_regularizer": regularizers.l2(1e-4)},
             {"layer_type": "BatchNorm"},
-            {"layer_type": "Conv2D", "filters": 32,  "kernel": (3, 3), "activation": "relu", "padding": "same", "stride": 2, "kernel_regularizer": wd},
+            {"layer_type": "Conv2D", "filters": 64, "kernel": (3, 3),
+            "activation": "relu", "stride": 2, "kernel_regularizer": regularizers.l2(1e-4)},
             {"layer_type": "BatchNorm"},
-            {"layer_type": "Dropout", "rate": 0.35},
 
-            # Block 3: 100 -> 50
-            {"layer_type": "Conv2D", "filters": 64, "kernel": (3, 3), "activation": "relu", "padding": "same", "kernel_regularizer": wd},
+            # Block 3
+            {"layer_type": "Conv2D", "filters": 128, "kernel": (3, 3),
+            "activation": "relu", "kernel_regularizer": regularizers.l2(1e-4)},
             {"layer_type": "BatchNorm"},
-            {"layer_type": "Conv2D", "filters": 64, "kernel": (3, 3), "activation": "relu", "padding": "same", "stride": 2, "kernel_regularizer": wd},
+            {"layer_type": "Conv2D", "filters": 128, "kernel": (3, 3),
+            "activation": "relu", "stride": 2, "kernel_regularizer": regularizers.l2(1e-4)},
             {"layer_type": "BatchNorm"},
-            {"layer_type": "Dropout", "rate": 0.35},
-
-            # Block 4: 50 -> 25
-            {"layer_type": "Conv2D", "filters": 128, "kernel": (3, 3), "activation": "relu", "padding": "same", "kernel_regularizer": wd},
-            {"layer_type": "BatchNorm"},
-            {"layer_type": "Conv2D", "filters": 128, "kernel": (3, 3), "activation": "relu", "padding": "same", "stride": 2, "kernel_regularizer": wd},
-            {"layer_type": "BatchNorm"},
-            {"layer_type": "Dropout", "rate": 0.3},
-
-            # Bottleneck
-            {"layer_type": "Conv2D", "filters": 256, "kernel": (3, 3), "activation": "relu", "padding": "same", "kernel_regularizer": wd},
-            {"layer_type": "BatchNorm"},
-            {"layer_type": "Dropout", "rate": 0.4},
-
-            # Head
-            {"layer_type": "GlobalAvgPool"},
-            {"layer_type": "Dense", "units": 128, "activation": "relu", "kernel_regularizer": wd},
-            {"layer_type": "Dropout", "rate": 0.6},
-            {"layer_type": "Dense", "units": 1, "activation": "sigmoid", "dtype": "float32"}
-        ]
-
-
+            # Output head
+]
 
         self.model.build_network(layer_input)
         self.model.compile()
 
-        self.model.train(self.X_train, self.Y_train, self.X_val, self.Y_val)
+        history = self.model.train(self.X_train, self.Y_train, self.X_val, self.Y_val, epochs = 25)
+        self.plot_training_history(history)
         
-        #self.model.evaluate(self.X_test, self.Y_test)
+        self.model.evaluate(self.X_test, self.Y_test)
         self.model.save_model("model_test")
 

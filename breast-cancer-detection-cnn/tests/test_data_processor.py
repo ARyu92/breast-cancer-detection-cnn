@@ -3,6 +3,7 @@ import sys
 import os
 import pydicom
 import numpy as np
+import pandas as pd
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
@@ -21,50 +22,42 @@ class test_data_processor(unittest.TestCase):
 
     #Tests that the metadata file can be imported given a valid file path. 
     def test_import_metadata(self):
-        file_path = "../data/meta_data.json"
+        file_path = "../data/meta_data.csv"
 
         meta_data = self.processor.import_metadata(file_path)
+        self.assertEqual(len(meta_data), 1324)
 
-    #Tests that all elements of the metadata are imported.
-    def test_import_metadata_1(self):
-        file_path = "../data/meta_data.json"
-        meta_data = self.processor.import_metadata(file_path)
-
-        self.assertEqual(len(meta_data), 1142)
-
-    #Checks that each dictionary of the meta data array has keys: patient_id, laterality, cc_path, mlo_path, and label
-    def test_import_metadata_2(self):
-        file_path = "../data/meta_data.json"
-        meta_data = self.processor.import_metadata(file_path)
-
-        key_exists = True
-        for data in meta_data:
-            keys = data.keys()
-            if ("patient_id" not in keys 
-                or "laterality" not in keys
-                or "cc_path" not in keys
-                or "mlo_path" not in keys
-                or "label" not in keys) :
-                key_exists = False
-                break
-        self.assertTrue(key_exists)
-
-    #Checks that the function returns image tensors and label tensors.
-    def test_prepare_tensors(self):
-        X, Y = self.processor.prepare_tensors("../data/meta_data.json")
-        self.assertEqual(len(X), len(Y))
-        self.assertEqual(len(X), 1142)
+    def test_get_uniqueIDs(self):
+        data = {
+            "patient_id": ["P_0001", "P_0002", "P_0001", "P_0003"],
+            "label": [0, 1, 0, 1]
+        }
+        df = pd.DataFrame(data)
         
+        uniqueIDs = self.processor.get_unique_IDs(df)
+        self.assertEqual(len(uniqueIDs), 3)
 
-    #This tests that the function takes in a dicom object and returns its pixel data.
-    def test_extract_pixels_from_dicom(self):
-        #Import sample dicom file
-        dicom = pydicom.dcmread("../data/Data/manifest/CBIS-DDSM/Calc-Test_P_00038_LEFT_CC/08-29-2017-DDSM-NA-96009/1.000000-full mammogram images-63992/1-1.dcm") 
-        pixel_data = self.processor.extract_pixels_from_dicom(dicom)
-        self.assertIsInstance(pixel_data, np.ndarray)
+    #Tests that the tensors are returned with the proper split.
+    def test_prepare_tensors(self):
+        file_path = "../data/meta_data.csv"
+    
+        X1, Y1, X2, Y2, X3, Y3 = self.processor.prepare_tensors(file_path)
+        
+        len_X1 = len(X1)
+        len_Y1 = len(Y1)
+        len_X2 = len(X2)
+        len_Y2 = len(Y2)
+        len_X3 = len(X3)
+        len_Y3 = len(Y3)
 
+        print("Train set:", len_X1, len_Y1)
+        print("Val set:", len_X2, len_Y2)
+        print("Test set:", len_X3, len_Y3)
 
-
+        # Optional sanity checks
+        self.assertEqual(len_X1, len_Y1)
+        self.assertEqual(len_X2, len_Y2)
+        self.assertEqual(len_X3, len_Y3)
 
 if __name__ == "__main__":
     unittest.main()
