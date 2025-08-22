@@ -85,6 +85,67 @@ class Model:
         return self.neural_network
 
 
+    #Functions to build split input model.
+    def create_convolution_block (self, layer, filters, k, strides):
+        layer = layers.Conv2D(filters, kernel_size = k, strides = strides)(layer)
+        layer = layers.BatchNormalization()(layer)
+        layer = layers.Activation("relu")(layer)
+        return layer
+    
+    #Create a 3 block deep "branch" for each image view tensor.
+    def create_three_block_branch(self, input_tensor, filter1 = 32, filter2 = 64, filter3 = 128):
+        #block 1
+        layer = self.create_convolution_block(input_tensor, filter1, 3, 1)
+        layer = layers.MaxPool2D(2)(layer)
+
+        #block2
+        layer = self.create_convolution_block(layer, filter2, 3, 1)
+        layer = layers.MaxPool2D(2)(layer)
+
+        #block3
+        layer = self.create_convolution_block(layer, filter3, 3, 1)
+        layer = layers.MaxPool2D(2)(layer)
+
+        return layer
+
+    def build_split_network(self, input_shape = (512, 512, 2), filter1 = 32, filter2 = 64, filter3 = 128):
+        #Input is the stacked tensor, each image per channel. 
+        input_tensor = layers.Input(shape = input_shape)
+
+        #Split the input by channel using lambdas. CC view is in channel 0, and MLO is in channel 1
+        cc_channel = layers.Lambda(lambda t: t[..., 0:1])(input_tensor)
+        mlo_channel = layers.Lamda(lambda t: t[..., 1:2])(input_tensor)
+
+        #Create the separate branches for each of the channels. 
+        cc_branch = self.create_three_block_branch(cc_channel, filter1 = filter1, filter2= filter2, filter3= filter3)
+        mlo_branch = self.create_three_block_branch(mlo_channel, filter1 = filter1, filter2= filter2, filter3= filter3)
+        
+        #Fuse the two branches, but how? Apply some operations to the feature spaces to gain other insights
+        #1. Concatenate, to keep the raw data from both views
+        concat = layers.Concatenate()([cc_branch, mlo_branch])
+
+        #2. Subtract, to see the differences between the two feature spaces.
+        diff = layers.Subtract()([cc_branch, mlo_branch])
+
+        #3. Multiply, to amplify where the feature space is the same
+        product = layers.Multiply()([cc_branch, mlo_branch])
+
+        #4. Combine them all so that there is a representation that can be classified.
+        combined = layers.concatenate([concat, diff, product])
+
+        combined = self.create_convolution_block(combined, 256, k = 1, strides = 1)
+
+        layer = self.create_convolution_block(combined, 256, k = 3, stides = 2)
+        layer = self.create_convolution_block(layer, 256, k = 3, strides = 1)
+        layer = layers.GlobalAveragePooling2D()(layer)
+
+        layer = layers.Dense(256, activation= "relu")(layer)
+        layer = layers.Dropout(0.5)(layer)
+
+        output = layers.Dense(1, activation = "sigmoid")(layer)
+
+                
+        return Model(input_tensor, output)
 
 
     def compile(self, learning_rate=1e-4):
