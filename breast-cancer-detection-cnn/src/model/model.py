@@ -92,7 +92,7 @@ class Model:
 
     #Functions to build split input model.
     def create_convolution_block (self, layer, filters, k, strides):
-        layer = layers.Conv2D(filters, kernel_size = k, strides = strides)(layer)
+        layer = layers.Conv2D(filters, kernel_size = k, strides = strides, padding = "same", use_bias = False)(layer)
         layer = layers.BatchNormalization()(layer)
         layer = layers.Activation("relu")(layer)
         return layer
@@ -112,14 +112,25 @@ class Model:
         layer = layers.MaxPool2D(2)(layer)
 
         return layer
+    #Adds some random augmentation to the input.
+    def add_augmentation(self, input):
+        input_augmentation = keras.Sequential([
+            layers.RandomRotation(0.02),
+            layers.RandomZoom(0.1),
+            layers.RandomTranslation(0.05, 0.05)
+        ])
+        return input_augmentation(input)
 
     def build_split_network(self, input_shape = (512, 512, 2), filter1 = 32, filter2 = 64, filter3 = 128):
         #Input is the stacked tensor, each image per channel. 
         input_tensor = layers.Input(shape = input_shape)
+        
+        #Augment the input with some random rotations, zooms, translations
+        augmented_layer = self.add_augmentation(input_tensor)
 
         #Split the input by channel using lambdas. CC view is in channel 0, and MLO is in channel 1
-        cc_channel = layers.Lambda(lambda t: t[..., 0:1])(input_tensor)
-        mlo_channel = layers.Lamda(lambda t: t[..., 1:2])(input_tensor)
+        cc_channel = layers.Lambda(lambda t: t[..., 0:1])(augmented_layer)
+        mlo_channel = layers.Lambda(lambda t: t[..., 1:2])(augmented_layer)
 
         #Create the separate branches for each of the channels. 
         cc_branch = self.create_three_block_branch(cc_channel, filter1 = filter1, filter2= filter2, filter3= filter3)
@@ -136,11 +147,11 @@ class Model:
         product = layers.Multiply()([cc_branch, mlo_branch])
 
         #4. Combine them all so that there is a representation that can be classified.
-        combined = layers.concatenate([concat, diff, product])
+        combined = layers.Concatenate(axis = -1)([concat, diff, product])
 
         combined = self.create_convolution_block(combined, 256, k = 1, strides = 1)
 
-        layer = self.create_convolution_block(combined, 256, k = 3, stides = 2)
+        layer = self.create_convolution_block(combined, 256, k = 3, strides = 2)
         layer = self.create_convolution_block(layer, 256, k = 3, strides = 1)
         layer = layers.GlobalAveragePooling2D()(layer)
 
@@ -149,15 +160,15 @@ class Model:
 
         output = layers.Dense(1, activation = "sigmoid")(layer)
 
-                
-        return Model(input_tensor, output)
+        self.neural_network = keras.Model(input_tensor, output)
+        return self.neural_network
 
 
 
     def compile(self, learning_rate=1e-4):
         self.neural_network.compile(
         optimizer=keras.optimizers.Adam(learning_rate),
-        loss=losses.BinaryCrossentropy(label_smoothing=0.05),
+        loss=losses.BinaryCrossentropy(),
         metrics=["accuracy", metrics.AUC(name="auc")]
     )
 

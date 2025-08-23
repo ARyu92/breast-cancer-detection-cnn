@@ -130,10 +130,11 @@ class Trainer:
             # Output head
 ]
 
-        self.model.build_network(layer_input)
+        #self.model.build_network(layer_input)
+        self.model.build_split_network()
         self.model.compile()
 
-        history = self.model.train(self.X_train, self.Y_train, self.X_val, self.Y_val, epochs = 25)
+        history = self.model.train(self.X_train, self.Y_train, self.X_val, self.Y_val, epochs = 50)
         self.plot_training_history(history)
         
         self.model.evaluate(self.X_test, self.Y_test)
