@@ -156,7 +156,7 @@ class Model:
         layer = layers.GlobalAveragePooling2D()(layer)
 
         layer = layers.Dense(256, activation= "relu")(layer)
-        layer = layers.Dropout(0.5)(layer)
+        layer = layers.Dropout(0.15)(layer)
 
         output = layers.Dense(1, activation = "sigmoid")(layer)
 
@@ -172,13 +172,14 @@ class Model:
         metrics=["accuracy", metrics.AUC(name="auc")]
     )
 
-    def train(self, training_data, training_labels, validation_data, validation_label, epochs=50, batch_size=32):
+    def train(self, training_data, training_labels, validation_data, validation_label, epochs=50, batch_size=32, class_weight = None):
         return self.neural_network.fit(
             x=training_data,
             y=training_labels,
             validation_data=(validation_data, validation_label),
             epochs=epochs,
-            batch_size=batch_size
+            batch_size=batch_size,
+            class_weight = class_weight
         )
 
     def evaluate(self, data, labels):

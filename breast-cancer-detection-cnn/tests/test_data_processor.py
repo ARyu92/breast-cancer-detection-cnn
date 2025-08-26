@@ -54,10 +54,10 @@ class test_data_processor(unittest.TestCase):
         print("Val set:", len_X2, len_Y2)
         print("Test set:", len_X3, len_Y3)
 
-        # Optional sanity checks
         self.assertEqual(len_X1, len_Y1)
         self.assertEqual(len_X2, len_Y2)
         self.assertEqual(len_X3, len_Y3)
+
 
 if __name__ == "__main__":
     unittest.main()

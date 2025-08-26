@@ -8,6 +8,11 @@ from pathlib import Path
 from keras import regularizers
 import matplotlib.pyplot as plt
 from tensorflow.keras import regularizers
+from tensorflow.keras import mixed_precision
+from sklearn.utils.class_weight import compute_class_weight
+
+mixed_precision.set_global_policy("mixed_float16")
+
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -60,9 +65,12 @@ class Trainer:
 
         # Plot loss
         plt.subplot(1, 2, 2)
-        plt.plot(epochs, hist['loss'], label='Training Loss')
-        if 'val_loss' in hist:
-            plt.plot(epochs, hist['val_loss'], label='Validation Loss')
+        plt.plot(epochs, hist['auc'], label='Training AUC')
+        if 'auc' in hist:
+            plt.plot(epochs, hist['auc'], label='Training AUC')
+
+        if 'val_auc' in hist:
+            plt.plot(epochs, hist['val_auc'], label='Validation AUC')
         plt.xlabel('Epochs')
         plt.ylabel('Loss')
         plt.title('Training & Validation Loss')
@@ -73,9 +81,11 @@ class Trainer:
         plt.show()
 
     #This function performs the entire training pipeline
-    def training_pipeline(self):
+    def training_pipeline(self, filter1 = 32, filter2 = 64, filter3 = 128):
         # Retrieve data.
         self.X_train, self.Y_train, self.X_val, self.Y_val,self.X_test,self.Y_test = self.data_processor.prepare_tensors("../data/meta_data.csv")
+
+
 
         #Last Z-score normalization
         mean = self.X_train.mean(axis=(0, 1, 2), keepdims=True).astype(np.float32)
@@ -126,15 +136,20 @@ class Trainer:
             {"layer_type": "BatchNorm"},
             {"layer_type": "Conv2D", "filters": 128, "kernel": (3, 3),
             "activation": "relu", "stride": 2, "kernel_regularizer": regularizers.l2(1e-4)},
-            {"layer_type": "BatchNorm"},
-            # Output head
-]
+            {"layer_type": "BatchNorm"}
+        ]
+        #classes = np.unique(self.Y_train)
+        #weights = compute_class_weight('balanced', classes=classes, y= self.Y_train)
+        #class_weights = dict(zip(classes, weights))
+        class_weights = {0: 5.0, 1: 95.0}
 
         #self.model.build_network(layer_input)
         self.model.build_split_network()
         self.model.compile()
 
-        history = self.model.train(self.X_train, self.Y_train, self.X_val, self.Y_val, epochs = 50)
+
+
+        history = self.model.train(self.X_train, self.Y_train, self.X_val, self.Y_val, epochs = 50, batch_size = 8, class_weight = class_weights)
         self.plot_training_history(history)
         
         self.model.evaluate(self.X_test, self.Y_test)
