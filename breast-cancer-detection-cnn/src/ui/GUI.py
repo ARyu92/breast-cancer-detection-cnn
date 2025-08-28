@@ -1,130 +1,174 @@
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
-
-import streamlit as st
+from qtpy import QtWidgets, QtCore, QtGui
 import numpy as np
+
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 from preprocessing.data_processor import dataProcessor
 
-
-class GUI:
+#The GUI is an inheirited class of the QtWidgets class.
+class GUI(QtWidgets.QWidget):
     def __init__(self):
-        self.data_processor = dataProcessor()
+        super().__init__()
+        self.apply_dark_theme()
 
-        # --- Page layout ---
-        st.set_page_config(layout="wide")
-        st.markdown("""
-            <style>
-            .block-container { padding-top: 0rem; padding-bottom: 1rem; }
-            </style>
-        """, unsafe_allow_html=True)
+        self.setWindowTitle("Breast Cancer Detection App")
+        self.resize(1920,1080)
+        self.main_layout = QtWidgets.QVBoxLayout()
+        self.setLayout(self.main_layout)
 
-        # --- Session state ---
-        if "show_uploader" not in st.session_state:
-            st.session_state.show_uploader = False
-        if "uploader_counter" not in st.session_state:
-            st.session_state.uploader_counter = 0
-        # store last displayed CC image
-        if "cc_last_img" not in st.session_state:
-            st.session_state.cc_last_img = None
 
-        # --- Build UI ---
-        self.build_header()
-        self.build_toolbar()
-        self.build_main_body()
-        self.build_footer()
+        #Header---------------------------------------------------------
+        self.header = self.define_header()
+        self.main_layout.addLayout(self.header)
 
-        # --- Conditionally show uploader ---
-        if st.session_state.show_uploader:
-            self.show_uploader()
+        #Navigator----------------------------------------------------
+        self.navigator = self.define_navigator()
+        self.main_layout.addLayout(self.navigator)
 
-    def build_header(self):
-        with st.container():
-            st.markdown("## Breast Cancer Detection")
-            st.markdown("An AI Powered Application")
+        #Body----------------------------------------------------------
+        self.body = QtWidgets.QHBoxLayout()
+        #Info bar
+        self.info_bar = self.define_info_bar()
+        self.body.addLayout(self.info_bar)
 
-    def build_toolbar(self):
-        tool_pad1, tool_col1, tool_col2, tool_pad2 = st.columns([1.5, 1, 1, 6.5])
+        #Image Display
+        self.image_display = self.define_image_display()
+        self.body.addLayout(self.image_display)
 
-        with tool_col1:
-            # Always visible button
-            if st.button("Load Image", use_container_width=True, key="load_image_button"):
-                st.session_state.show_uploader = True
-                # bump key so uploader gets recreated each time
-                st.session_state.uploader_counter += 1
+        #Add body layout to main layout.
+        self.main_layout.addLayout(self.body)
 
-        with tool_col2:
-            st.button("Load Model", use_container_width=True, key="load_model_button")
+        #Footer-------------------------------------------------------
+        self.footer = self.define_footer()
+        self.main_layout.addLayout(self.footer)
 
-    def build_main_body(self):
-        info_bar, cc_image_holder, body_pad1, mlo_image_holder, body_pad2 = st.columns([1.5, 3.5, .2, 3.5, 0.8])
+        self.main_layout.addStretch()
+    
+    #This function applies a dark color theme
+    def apply_dark_theme(self):
+        #To do
+        return 
+    
+    def define_header(self):
+        header = QtWidgets.QHBoxLayout()
+        label = QtWidgets.QLabel("Breast Cancer Detection App")
 
-        with info_bar:
-            st.subheader("Patient:")
-            st.write("Patient Name: example")
+        header.addWidget(label)
 
-        placeholder_img = np.zeros((400, 400, 3), dtype=np.uint8)
+        return header
+    
+    def define_navigator(self):
+        navigator = QtWidgets.QHBoxLayout()
+        navigator.addStretch(1.5)
+        #Initialize load image button and add to nanvigator.
+        load_image_button = QtWidgets.QPushButton("Load Image")
+        navigator.addWidget(load_image_button)
+        #Set as class method for later access.
+        setattr(self, "load_image_button", load_image_button)
 
-        with cc_image_holder:
-            self.cc_image_slot = st.empty()
-            # Persisted image if available; otherwise placeholder
-            if st.session_state.cc_last_img is not None:
-                self.cc_image_slot.image(
-                    st.session_state.cc_last_img,
-                    caption="Craniocaudal",
-                    use_container_width=True
-                )
-            else:
-                self.cc_image_slot.image(
-                    placeholder_img,
-                    caption="Craniocaudal",
-                    use_container_width=True
-                )
+        #Initialize load model button as above.
+        load_model_button = QtWidgets.QPushButton("Load Model")
+        navigator.addWidget(load_model_button)
+        #Set as class method for later access.
+        setattr(self, "load_model_button", load_model_button)
 
-        with mlo_image_holder:
-            mlo_image_slot = st.empty()
-            mlo_image_slot.image(
-                placeholder_img,
-                caption="Mediolateral Oblique",
-                use_container_width=True
-            )
+        option_button = QtWidgets.QPushButton("Options")
+        navigator.addWidget(option_button)
+        #Set as class method for later access.
+        setattr(self, "option_button", option_button)
+        navigator.addStretch(8.5)
 
-    def build_footer(self):
-        model_options, console, malignant_marker, benign_marker, foot_pad1 = st.columns([1.5, 6.5, 0.75, 0.75, 0.5])
 
-        with model_options:
-            st.write("Model Options"); st.button("⚙️")
+        return navigator
+    
+    def define_info_bar(self):
+        info_bar = QtWidgets.QVBoxLayout()
 
-        with console:
-            st.write("Console"); st.code("sample console output")
+        #Individual patient data
+        #Patient ID
+        self.patient_id = QtWidgets.QLabel(f"Patient ID: ---")
+        info_bar.addWidget(self.patient_id)
 
-        with malignant_marker:
-            st.markdown(""); st.markdown("")
-            st.button("Malignant", use_container_width=True, key="malignant_marker_button")
+        #Patient First Name
+        self.patient_fname = QtWidgets.QLabel(f"First Name: ---")
+        info_bar.addWidget(self.patient_fname)
 
-        with benign_marker:
-            st.markdown(""); st.markdown("")
-            st.button("Benign", use_container_width=True, key="benign_marker_button")
+        #Patient Last Name
+        self.patient_lname = QtWidgets.QLabel(f"Last Name: ---")
+        info_bar.addWidget(self.patient_lname)
 
-    def show_uploader(self):
-        # dynamic key so widget can be created/destroyed cleanly
-        key = f"dicom_uploader_{st.session_state.uploader_counter}"
-        dicom_file = st.file_uploader(
-            "Upload an image in DICOM format",
-            type=["dcm"],
-            key=key
-        )
+        #Birthday
+        self.patient_birthday = QtWidgets.QLabel(f"Birthday: ---")
+        info_bar.addWidget(self.patient_birthday)
 
-        if dicom_file is not None:
-            # Convert UploadedFile -> pydicom Dataset
-            dicom_ds = self.data_processor.uploadedfile_to_dicom(dicom_file)
-            # Get display-ready uint8 pixels (your DP normalizes)
-            pixels_uint8 = self.data_processor.extract_pixels_from_dicom(dicom_ds)
+        #Add spacer
+        info_bar.addStretch(15)
 
-            # Persist and display
-            st.session_state.cc_last_img = pixels_uint8
-            self.cc_image_slot.image(pixels_uint8, caption="Craniocaudal", use_container_width=True)
+        return info_bar
+    
+    def update_patient_info(self):
+        patient_id_value = "Test233"
+        self.patient_id.setText(f"Patient ID: {patient_id_value}")
 
-            # Hide uploader and refresh so it disappears immediately
-            st.session_state.show_uploader = False
-            st.rerun()
+        patient_fname_value = "Fran"
+        self.patient_fname.setText = (f"First Name: {patient_fname_value}")
+
+        patient_lname_value = "Davis"
+        self.patient_lname.setText = (f"Last Name: {patient_lname_value}")
+
+        patient_birthday_value = "July 22 1992"
+        self.patient_birthday.setText = (f"Birthday: {patient_birthday_value}")
+
+    def define_image_display(self):
+        image_display = QtWidgets.QHBoxLayout()
+        #Add spacers on the left
+        image_display.addStretch(1)
+        # Left image box
+        self.image_box_left = QtWidgets.QLabel()
+        self.image_box_left.setFixedSize(800, 800)  # adjust size as needed
+        self.image_box_left.setStyleSheet("background-color: black; border: 2px solid white;")
+        self.image_box_left.setAlignment(QtCore.Qt.AlignCenter)
+
+        # Right image box
+        self.image_box_right = QtWidgets.QLabel()
+        self.image_box_right.setFixedSize(800, 800)
+        self.image_box_right.setStyleSheet("background-color: black; border: 2px solid white;")
+        self.image_box_right.setAlignment(QtCore.Qt.AlignCenter)
+
+        image_display.addWidget(self.image_box_left)
+        image_display.addWidget(self.image_box_right)
+        image_display.addStretch(1)
+
+
+
+        return image_display
+
+    def define_footer(self):
+        footer = QtWidgets.QHBoxLayout()
+        footer.addStretch(1)
+
+        # --- Text output area ---
+        self.output_box = QtWidgets.QLabel("Output: ---")
+        self.output_box.setFixedHeight(100)   # rectangle-like
+        self.output_box.setStyleSheet("background-color: #1e1e1e; color: white; border: 1px solid white; padding: 8px;")
+        self.output_box.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
+
+        # Make it expand horizontally (take most of the footer width)
+        footer.addWidget(self.output_box, stretch=6)
+
+        # --- Buttons ---
+        self.benign_button = QtWidgets.QPushButton("Benign")
+        self.malignant_button = QtWidgets.QPushButton("Malignant")
+
+        # Keep buttons compact (don’t stretch across whole row)
+        self.benign_button.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.malignant_button.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+
+        footer.addWidget(self.benign_button, stretch=0)
+        footer.addWidget(self.malignant_button, stretch=0)
+
+        return footer
+
+
