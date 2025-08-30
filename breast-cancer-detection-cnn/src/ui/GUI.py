@@ -127,7 +127,7 @@ class GUI(QtWidgets.QWidget):
         image_display.addStretch(1)
         # Left image box
         self.image_box_left = QtWidgets.QLabel()
-        self.image_box_left.setFixedSize(800, 800)  # adjust size as needed
+        self.image_box_left.setFixedSize(800, 800)
         self.image_box_left.setStyleSheet("background-color: black; border: 2px solid white;")
         self.image_box_left.setAlignment(QtCore.Qt.AlignCenter)
 
@@ -151,7 +151,7 @@ class GUI(QtWidgets.QWidget):
 
         # --- Text output area ---
         self.output_box = QtWidgets.QLabel("Output: ---")
-        self.output_box.setFixedHeight(100)   # rectangle-like
+        self.output_box.setFixedHeight(100)
         self.output_box.setStyleSheet("background-color: #1e1e1e; color: white; border: 1px solid white; padding: 8px;")
         self.output_box.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
 
@@ -162,13 +162,18 @@ class GUI(QtWidgets.QWidget):
         self.benign_button = QtWidgets.QPushButton("Benign")
         self.malignant_button = QtWidgets.QPushButton("Malignant")
 
-        # Keep buttons compact (don’t stretch across whole row)
+        # Keep buttons compact
         self.benign_button.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         self.malignant_button.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+
+        #Connect buttons to event handlers.
+        self.benign_button.clicked.connect(self.on_benign_button_clicked)
 
         footer.addWidget(self.benign_button, stretch=0)
         footer.addWidget(self.malignant_button, stretch=0)
 
         return footer
-
+    
+    def on_benign_button_clicked(self):
+        self.output_box.setText("Benign button clicked")
 
