@@ -62,22 +62,24 @@ class GUI(QtWidgets.QWidget):
     def define_navigator(self):
         navigator = QtWidgets.QHBoxLayout()
         navigator.addStretch(1.5)
+
         #Initialize load image button and add to nanvigator.
-        load_image_button = QtWidgets.QPushButton("Load Image")
-        navigator.addWidget(load_image_button)
-        #Set as class method for later access.
-        setattr(self, "load_image_button", load_image_button)
+        self.load_image_button = QtWidgets.QPushButton("Load Image")
+        navigator.addWidget(self.load_image_button)
+        self.load_image_button.clicked.connect(self.on_load_image_button_clicked)
+
 
         #Initialize load model button as above.
-        load_model_button = QtWidgets.QPushButton("Load Model")
-        navigator.addWidget(load_model_button)
-        #Set as class method for later access.
-        setattr(self, "load_model_button", load_model_button)
+        self.load_model_button = QtWidgets.QPushButton("Load Model")
+        navigator.addWidget(self.load_model_button)
+        self.load_model_button.clicked.connect(self.on_load_model_button_clicked)
 
-        option_button = QtWidgets.QPushButton("Options")
-        navigator.addWidget(option_button)
-        #Set as class method for later access.
-        setattr(self, "option_button", option_button)
+
+
+        self.option_button = QtWidgets.QPushButton("Options")
+        navigator.addWidget(self.option_button)
+        self.option_button.clicked.connect(self.on_option_button_clicked)
+
         navigator.addStretch(8.5)
 
 
@@ -141,8 +143,6 @@ class GUI(QtWidgets.QWidget):
         image_display.addWidget(self.image_box_right)
         image_display.addStretch(1)
 
-
-
         return image_display
 
     def define_footer(self):
@@ -168,6 +168,7 @@ class GUI(QtWidgets.QWidget):
 
         #Connect buttons to event handlers.
         self.benign_button.clicked.connect(self.on_benign_button_clicked)
+        self.malignant_button.clicked.connect(self.on_malignant_button_clicked)
 
         footer.addWidget(self.benign_button, stretch=0)
         footer.addWidget(self.malignant_button, stretch=0)
@@ -176,4 +177,18 @@ class GUI(QtWidgets.QWidget):
     
     def on_benign_button_clicked(self):
         self.output_box.setText("Benign button clicked")
+
+    def on_malignant_button_clicked(self):
+        self.output_box.setText("Malignant button clicked")
+
+    def on_load_model_button_clicked(self):
+        self.output_box.setText("Load model button clicked")
+
+    def on_load_image_button_clicked(self):
+        self.output_box.setText("Load image button clicked")
+
+    def on_option_button_clicked(self):
+        self.output_box.setText("Option button clicked")
+        
+
 
