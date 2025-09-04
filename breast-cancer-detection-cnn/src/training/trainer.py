@@ -144,13 +144,27 @@ class Trainer:
         class_weights = {0: class_weight_benign, 1: class_weight_malignant}
 
         #self.model.build_network(layer_input)
+        # Phase 1: train head with frozen backbone
         self.model.build_split_network()
-        self.model.compile()
+        self.model.compile(learning_rate=1e-4)
 
+        history1 = self.model.train(
+            self.X_train, self.Y_train,
+            self.X_val, self.Y_val,
+            epochs=20, batch_size=8, class_weight=class_weights
+        )
+        self.plot_training_history(history1)
 
+        # Phase 2: unfreeze backbone and fine-tune
+        self.model.neural_network.get_layer("efficientnetb0").trainable = True
+        self.model.compile(learning_rate=1e-6)
 
-        history = self.model.train(self.X_train, self.Y_train, self.X_val, self.Y_val, epochs = epochs, batch_size = 8, class_weight = class_weights)
-        self.plot_training_history(history)
+        history2 = self.model.train(
+            self.X_train, self.Y_train,
+            self.X_val, self.Y_val,
+            epochs=20, batch_size=8, class_weight=class_weights
+        )
+        self.plot_training_history(history2)
         
         self.model.evaluate(self.X_test, self.Y_test)
         self.model.save_model("model_test")
