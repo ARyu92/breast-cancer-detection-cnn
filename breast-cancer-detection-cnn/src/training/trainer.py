@@ -81,7 +81,7 @@ class Trainer:
         plt.show()
 
     #This function performs the entire training pipeline
-    def training_pipeline(self, filter1 = 32, filter2 = 64, filter3 = 128):
+    def training_pipeline(self, filter1 = 32, filter2 = 64, filter3 = 128, class_weight_benign = 1, class_weight_malignant = 2, epochs = 50):
         # Retrieve data.
         self.X_train, self.Y_train, self.X_val, self.Y_val,self.X_test,self.Y_test = self.data_processor.prepare_tensors("../data/meta_data.csv")
 
@@ -141,7 +141,7 @@ class Trainer:
         #classes = np.unique(self.Y_train)
         #weights = compute_class_weight('balanced', classes=classes, y= self.Y_train)
         #class_weights = dict(zip(classes, weights))
-        class_weights = {0: 5.0, 1: 95.0}
+        class_weights = {0: class_weight_benign, 1: class_weight_malignant}
 
         #self.model.build_network(layer_input)
         self.model.build_split_network()
@@ -149,9 +149,8 @@ class Trainer:
 
 
 
-        history = self.model.train(self.X_train, self.Y_train, self.X_val, self.Y_val, epochs = 50, batch_size = 8, class_weight = class_weights)
+        history = self.model.train(self.X_train, self.Y_train, self.X_val, self.Y_val, epochs = epochs, batch_size = 8, class_weight = class_weights)
         self.plot_training_history(history)
         
         self.model.evaluate(self.X_test, self.Y_test)
         self.model.save_model("model_test")
-

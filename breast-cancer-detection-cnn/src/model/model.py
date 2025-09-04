@@ -4,6 +4,7 @@ from keras import metrics, losses
 
 from pathlib import Path
 
+
 class Model:
     def __init__(self):
         self.neural_network = None
@@ -14,7 +15,7 @@ class Model:
 
 
     def build_network(self, layer_input):
-        # ---- build a SHARED BACKBONE from your existing layer spec (for 1-channel input) ----
+
         backbone = keras.Sequential(name="shared_backbone")
         backbone.add(layers.Input(shape=(512, 512, 1)))
 
@@ -64,11 +65,10 @@ class Model:
         if pending_activation:
             backbone.add(layers.Activation(pending_activation))
 
-        # ---- main model: single 2-channel input -> split -> shared backbone -> late fusion ----
         inp = layers.Input(shape=(512, 512, 2), name="cc_mlo_stacked")
 
-        cc  = layers.Lambda(lambda t: t[..., 0:1], name="split_cc")(inp)   # (H,W,1)
-        mlo = layers.Lambda(lambda t: t[..., 1:2], name="split_mlo")(inp)  # (H,W,1)
+        cc  = layers.Lambda(lambda t: t[..., 0:1], name="split_cc")(inp)
+        mlo = layers.Lambda(lambda t: t[..., 1:2], name="split_mlo")(inp)
 
         emb_cc  = backbone(cc)
         emb_mlo = backbone(mlo)
@@ -156,7 +156,7 @@ class Model:
         layer = layers.GlobalAveragePooling2D()(layer)
 
         layer = layers.Dense(256, activation= "relu")(layer)
-        layer = layers.Dropout(0.15)(layer)
+        layer = layers.Dropout(0.07)(layer)
 
         output = layers.Dense(1, activation = "sigmoid")(layer)
 
@@ -165,12 +165,16 @@ class Model:
 
 
 
-    def compile(self, learning_rate=1e-4):
+    def compile(self, learning_rate=1e-5):
         self.neural_network.compile(
-        optimizer=keras.optimizers.Adam(learning_rate),
-        loss=losses.BinaryCrossentropy(),
-        metrics=["accuracy", metrics.AUC(name="auc")]
-    )
+            optimizer=keras.optimizers.Adam(learning_rate),
+            loss="binary_crossentropy",
+            metrics=[
+            metrics.AUC(name="auc"),
+            metrics.Recall(name="sensitivity"),
+            metrics.Precision(name="precision")
+            ]
+        )
 
     def train(self, training_data, training_labels, validation_data, validation_label, epochs=50, batch_size=32, class_weight = None):
         return self.neural_network.fit(
@@ -207,3 +211,18 @@ class Model:
 
     def load_model(self, path):
         return keras.models.load_model(path)
+    
+
+
+    def specificity(y_true, y_pred):
+        y_pred = tf.round(y_pred)
+        y_true = tf.cast(y_true, tf.float32)
+
+        tn = tf.reduce_sum((1 - y_true) * (1 - y_pred))
+        fp = tf.reduce_sum((1 - y_true) * y_pred)
+
+        return tn / (tn + fp + tf.keras.backend.epsilon())
+
+
+
+

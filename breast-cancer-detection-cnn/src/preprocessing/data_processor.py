@@ -42,11 +42,11 @@ class dataProcessor:
 
 
     #Prepare the tensors
-    #1. Import the meta data
+    #1. Import the meta data to pandas DF
     #2. Get a list of unique patient IDs from the meta data csv
     #3. Shuffle the list of unique patient IDs
     #4. Split the list of unique patient IDs by into training, validation and testing using the split ratios
-    #   and then for each set, search for each patient's ID on the meta data. 
+    #5  for each set, search for each patient's ID on the meta data. 
     ### It could be that there are multiple rows returned, because the same patient can have more than 1 image set.
     #Code should look somewhat like:
     #. For each unique_patient_ID in unique_patient_IDs:
@@ -54,7 +54,7 @@ class dataProcessor:
         #For each row in row_slices
             #Append image data
             #Append label data
-    def prepare_tensors(self, meta_data_file_path, split=[0.70, 0.20, 0.10], seed=42):
+    def prepare_tensors(self, meta_data_file_path, split=[0.70, 0.20, 0.10], seed=509):
         #1. Import the meta data
         self.meta_data = self.import_metadata(meta_data_file_path)
 
@@ -99,14 +99,13 @@ class dataProcessor:
         load(val_patients,   X_val,   Y_val)
         load(test_patients,  X_test,  Y_test)
 
-        # Convert to numpy arrays
+        # Convert to numpy arrays, so that it is in format accepted by the keras model. 
         X_train = np.array(X_train)
         Y_train = np.array(Y_train)
         X_val   = np.array(X_val)
         Y_val   = np.array(Y_val)
         X_test  = np.array(X_test)
         Y_test  = np.array(Y_test)
-
 
         return X_train, Y_train, X_val, Y_val, X_test, Y_test
 
