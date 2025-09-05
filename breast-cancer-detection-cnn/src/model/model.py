@@ -206,4 +206,4 @@ class Model:
         return str(out_path)
 
     def load_model(self, path):
-        return keras.models.load_model(path)
+        self.neural_network =  keras.models.load_model(path)

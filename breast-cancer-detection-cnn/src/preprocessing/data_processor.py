@@ -7,6 +7,7 @@ import numpy as np
 import io
 import cv2 
 import random
+from pydicom.pixel_data_handlers.util import apply_modality_lut, apply_voi_lut
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
@@ -109,5 +110,28 @@ class dataProcessor:
 
 
         return X_train, Y_train, X_val, Y_val, X_test, Y_test
+
+
+    
+    #This function takes in a path to a dicom file and extracts patient data from it.
+    def process_dicom(self, dicom_path):
+        dicom = pydicom.dcmread(dicom_path)
+        pixels = self.image_processor.extract_pixels(dicom)
+        pixels = self.image_processor.normalize(pixels)
+        return pixels
+    
+    #This function takes in a path to a dicom file and processes it into a tensor.
+    def process_image(self, dicom_path):
+        dicom = pydicom.dcmread(dicom_path)
+        pixels = self.image_processor.extract_pixels(dicom)
+
+        pixels = apply_voi_lut(pixels, dicom)
+        pixels = cv2.resize(pixels, (512,512))
+        pixels = self.image_processor.crop_image(pixels, patch_size = 32,
+                                        black_low=0, black_high=100,
+                                        patch_black_ratio=0.6)
+        pixels = cv2.resize(pixels, (512,512))
+
+        return pixels
 
 

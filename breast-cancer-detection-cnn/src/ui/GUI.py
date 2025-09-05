@@ -3,14 +3,26 @@ import os
 from qtpy import QtWidgets, QtCore, QtGui
 import numpy as np
 
-
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 from preprocessing.data_processor import dataProcessor
+from preprocessing.image_processor import ImageProcessor
+from model.model import Model
+
+
+
 
 #The GUI is an inheirited class of the QtWidgets class.
 class GUI(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
+        self.output_text = ""
+        self.neural_network = Model()
+        self.data_processor = dataProcessor()
+        self.image_processor = ImageProcessor()
+        self.cc_tensor = None
+        self.mlo_tensor = None
+
+
         self.apply_dark_theme()
 
         self.setWindowTitle("Breast Cancer Detection App")
@@ -63,10 +75,15 @@ class GUI(QtWidgets.QWidget):
         navigator = QtWidgets.QHBoxLayout()
         navigator.addStretch(1.5)
 
-        #Initialize load image button and add to nanvigator.
-        self.load_image_button = QtWidgets.QPushButton("Load Image")
-        navigator.addWidget(self.load_image_button)
-        self.load_image_button.clicked.connect(self.on_load_image_button_clicked)
+        #Initialize load CC image button and add to nanvigator.
+        self.load_CC_image_button = QtWidgets.QPushButton("Load CC Image")
+        navigator.addWidget(self.load_CC_image_button)
+        self.load_CC_image_button.clicked.connect(self.on_load_CC_image_button_clicked)
+
+        #Initialize load MLO image button and add to nanvigator.
+        self.load_MLO_image_button = QtWidgets.QPushButton("Load MLO Image")
+        navigator.addWidget(self.load_MLO_image_button)
+        self.load_MLO_image_button.clicked.connect(self.on_load_MLO_image_button_clicked)
 
 
         #Initialize load model button as above.
@@ -176,19 +193,124 @@ class GUI(QtWidgets.QWidget):
         return footer
     
     def on_benign_button_clicked(self):
-        self.output_box.setText("Benign button clicked")
+        self.make_prediction()
 
     def on_malignant_button_clicked(self):
-        self.output_box.setText("Malignant button clicked")
+        self.make_prediction()
 
     def on_load_model_button_clicked(self):
         self.output_box.setText("Load model button clicked")
+        model_path, _ = QtWidgets.QFileDialog.getOpenFileName(
+            self, "Load Model", "", "DICOM Files (*.keras)"
+        )
+        if not model_path:
+            return
 
-    def on_load_image_button_clicked(self):
-        self.output_box.setText("Load image button clicked")
+        self.neural_network.load_model(model_path)
+        if (self.neural_network.neural_network is not None):
+            self.output_box.setText("Model loaded")
+
+        self.neural_network.neural_network.compile()
+
+    def on_load_CC_image_button_clicked(self):
+        self.output_box.setText("Load CC image button clicked")
+
+        dicom_path, _ = QtWidgets.QFileDialog.getOpenFileName(
+            self, "Load Patient DICOM file", "", "DICOM Files (*.dcm)"
+        )
+        if not dicom_path:
+            return
+
+        pixels = self.data_processor.process_dicom(dicom_path)
+
+
+        # build QImage from NumPy data
+        h, w = pixels.shape
+        qimg = QtGui.QImage(pixels.data, w, h, w, QtGui.QImage.Format_Grayscale8)
+        qimg = qimg.copy()
+
+        # convert to QPixmap and show on your label
+        pixmap = QtGui.QPixmap.fromImage(qimg)
+        pixmap = pixmap.scaled(
+            self.image_box_left.size(),
+            QtCore.Qt.KeepAspectRatio
+        )
+        self.image_box_left.setPixmap(pixmap)
+
+        #Create the tensor.
+        self.cc_tensor = self.data_processor.process_image(dicom_path)
+
+    def on_load_MLO_image_button_clicked(self):
+        self.output_box.setText("Load MLO image button clicked")
+
+        dicom_path, _ = QtWidgets.QFileDialog.getOpenFileName(
+            self, "Load Patient DICOM file", "", "DICOM Files (*.dcm)"
+        )
+        if not dicom_path:
+            return
+
+        pixels = self.data_processor.process_dicom(dicom_path)
+
+
+        # build QImage from NumPy data
+        h, w = pixels.shape
+        qimg = QtGui.QImage(pixels.data, w, h, w, QtGui.QImage.Format_Grayscale8)
+        qimg = qimg.copy()
+
+        # convert to QPixmap and show on your label
+        pixmap = QtGui.QPixmap.fromImage(qimg)
+        pixmap = pixmap.scaled(
+            self.image_box_right.size(),
+            QtCore.Qt.KeepAspectRatio
+        )
+        self.image_box_right.setPixmap(pixmap)
+
+        #Create the tensor.
+        self.mlo_tensor = self.data_processor.process_image(dicom_path)
+
 
     def on_option_button_clicked(self):
         self.output_box.setText("Option button clicked")
         
+    def make_prediction(self):
+        self.output_text = ""
+        is_ready_for_prediction = True
+        if self.neural_network.neural_network == None:
+            self.output_text += "No Model loaded.\n"
+            is_ready_for_prediction = False
+        
+        if self.cc_tensor is None:
+            self.output_text += "No CC image loaded. \n"
+            is_ready_for_prediction = False
+        
+        if self.mlo_tensor is None:
+            self.output_text += "No MLO image loaded. \n"
+            is_ready_for_prediction = False
+
+        #If tensors and model are not loaded, then output message to user and return
+        if (not is_ready_for_prediction):
+            self.output_box.setText(self.output_text)
+            return
+        
+        stacked_tensor = np.stack([self.cc_tensor, self.mlo_tensor], axis=-1)
+        stacked_tensor = np.expand_dims(stacked_tensor, axis=0)
+
+        prediction = self.neural_network.neural_network.predict(stacked_tensor)
+
+        if (prediction == 0):
+            self.output_text += "Model predicts Benign\n"
+        else:
+            self.output_text += "Model predicts Malignant\n"
+        
+        self.output_box.setText(self.output_text)
+
+
+        
+        
+
+        
+
+
+
 
 

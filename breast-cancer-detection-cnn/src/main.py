@@ -3,9 +3,6 @@ from qtpy import QtWidgets
 from ui.GUI import GUI
 
 
-
-
-
 def main():
     app = QtWidgets.QApplication(sys.argv)
     gui = GUI()
