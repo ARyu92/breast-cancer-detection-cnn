@@ -1,13 +1,16 @@
+
 from tensorflow import keras
 from keras import layers
 from keras import metrics, losses
 from tensorflow.keras.applications import EfficientNetB0
 import tensorflow as tf
+from tensorflow.keras.applications import DenseNet121
+from tensorflow.keras.applications import MobileNetV2
 
 from pathlib import Path
 
 
-def make_thresholded_metric(metric_class, threshold=0.5, name=None):
+def make_thresholded_metric(metric_class, threshold=0.3, name=None):
     metric = metric_class()
     def thresholded(y_true, y_pred):
         y_pred_binary = tf.cast(y_pred >= threshold, tf.float32)
@@ -21,6 +24,7 @@ class Model:
         self.neural_network = None
         self.PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
         self.TRAINED_MODELS_DIR = self.PROJECT_ROOT / "trained_models"
+        self.TEMP_MODELS_DIR = self.PROJECT_ROOT / "temp"
 
     def add_augmentation(self, input):
         input_augmentation = keras.Sequential([
@@ -40,11 +44,11 @@ class Model:
         cc_rgb = tf.tile(cc_channel, [1, 1, 1, 3])
         mlo_rgb = tf.tile(mlo_channel, [1, 1, 1, 3])
 
-        backbone = EfficientNetB0(include_top=False, weights="imagenet", input_shape=(512, 512, 3))
-        backbone.trainable = False
+        self.backbone = MobileNetV2(include_top=False, weights="imagenet", input_shape=(512, 512, 3))
+        self.backbone.trainable = False
 
-        emb_cc = backbone(cc_rgb)
-        emb_mlo = backbone(mlo_rgb)
+        emb_cc = self.backbone(cc_rgb)
+        emb_mlo = self.backbone(mlo_rgb)
 
         emb_cc = layers.GlobalAveragePooling2D()(emb_cc)
         emb_mlo = layers.GlobalAveragePooling2D()(emb_mlo)
@@ -54,13 +58,13 @@ class Model:
                                       layers.Multiply()([emb_cc, emb_mlo])])
 
         x = layers.Dense(256, activation="relu")(fused)
-        x = layers.Dropout(0.2)(x)
-        out = layers.Dense(1, activation="sigmoid")(x)
+        #x = layers.Dropout(0.1)(x)
+        out = layers.Dense(1, activation="sigmoid", dtype="float32")(x)
 
         self.neural_network = keras.Model(input_tensor, out)
         return self.neural_network
 
-    def compile(self, learning_rate=1e-5, threshold=0.3):
+    def compile(self, learning_rate=1e-5, threshold=0.20, optimizer = keras.optimizers.Adam):
         self.neural_network.compile(
             optimizer=keras.optimizers.Adam(learning_rate),
             loss="binary_crossentropy",
@@ -99,13 +103,31 @@ class Model:
             counter += 1
 
         out_dir.mkdir(parents=True, exist_ok=False)
-        out_path = out_dir / f"{name}.keras"
+        out_path = str(out_dir / f"{name}_weights.h5")
+        self.neural_network.save_weights(out_path)
 
-        self.neural_network.save(str(out_path))
+        return str(out_path)
+    
+    def temp_save_model(self, model_name):
+        base = self.TEMP_MODELS_DIR
+        base.mkdir(parents=True, exist_ok=True)
+
+        name = model_name
+        out_dir = base / name
+        counter = 1
+        while out_dir.exists():
+            name = f"{model_name}_{counter}"
+            out_dir = base / name
+            counter += 1
+
+        out_dir.mkdir(parents=True, exist_ok=False)
+        out_path = str(out_dir / f"{name}_weights.h5")
+        self.neural_network.save(out_path)
+
         return str(out_path)
 
     def load_model(self, path):
-        return keras.models.load_model(path)
+        return keras.models.load_weights(path)
 
     def specificity(y_true, y_pred):
         y_pred = tf.round(y_pred)

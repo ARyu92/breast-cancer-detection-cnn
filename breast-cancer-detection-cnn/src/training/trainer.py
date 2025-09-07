@@ -1,15 +1,18 @@
 import sys
 import os
-import numpy as np 
+import numpy as np
 import hashlib
 import numpy as np 
 import matplotlib.pyplot as plt
 from pathlib import Path
 from keras import regularizers
 import matplotlib.pyplot as plt
+from tensorflow.keras.layers import BatchNormalization
 from tensorflow.keras import regularizers
 from tensorflow.keras import mixed_precision
 from sklearn.utils.class_weight import compute_class_weight
+import tensorflow as tf, gc
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
 mixed_precision.set_global_policy("mixed_float16")
 
@@ -44,57 +47,94 @@ class Trainer:
         return
     
     #This function takes in the training history details and plots it on a graph.
-    def plot_training_history(self, history):
-        # Extract the history dictionary
-        hist = history.history
-        epochs = range(1, len(hist['loss']) + 1)
+    def plot_training_history(self, histories):
+        plt.figure(figsize=(15, 5))
 
-        # Plot accuracy
-        plt.figure(figsize=(12, 5))
-
-        plt.subplot(1, 2, 1)
-        if 'accuracy' in hist:
-            plt.plot(epochs, hist['accuracy'], label='Training Accuracy')
-        if 'val_accuracy' in hist:
-            plt.plot(epochs, hist['val_accuracy'], label='Validation Accuracy')
+        plt.subplot(1, 3, 1)
+        for i, history in enumerate(histories, 1):
+            hist = history.history
+            epochs = range(1, len(hist['loss']) + 1)
+            if 'sensitivity' in hist:
+                plt.plot(epochs, hist['sensitivity'], label=f'Run {i} Train Sensitivity')
+            if 'val_sensitivity' in hist:
+                plt.plot(epochs, hist['val_sensitivity'], label=f'Run {i} Val Sensitivity')
         plt.xlabel('Epochs')
-        plt.ylabel('Accuracy')
-        plt.title('Training & Validation Accuracy')
+        plt.ylabel('Sensitivity')
+        plt.title('Sensitivity')
         plt.legend()
         plt.grid(True)
 
-        # Plot loss
-        plt.subplot(1, 2, 2)
-        plt.plot(epochs, hist['auc'], label='Training AUC')
-        if 'auc' in hist:
-            plt.plot(epochs, hist['auc'], label='Training AUC')
-
-        if 'val_auc' in hist:
-            plt.plot(epochs, hist['val_auc'], label='Validation AUC')
+        plt.subplot(1, 3, 2)
+        for i, history in enumerate(histories, 1):
+            hist = history.history
+            epochs = range(1, len(hist['loss']) + 1)
+            if 'precision' in hist:
+                plt.plot(epochs, hist['precision'], label=f'Run {i} Train Precision')
+            if 'val_precision' in hist:
+                plt.plot(epochs, hist['val_precision'], label=f'Run {i} Val Precision')
         plt.xlabel('Epochs')
-        plt.ylabel('Loss')
-        plt.title('Training & Validation Loss')
+        plt.ylabel('Precision')
+        plt.title('Precision')
+        plt.legend()
+        plt.grid(True)
+
+        plt.subplot(1, 3, 3)
+        for i, history in enumerate(histories, 1):
+            hist = history.history
+            epochs = range(1, len(hist['loss']) + 1)
+            if 'auc' in hist:
+                plt.plot(epochs, hist['auc'], label=f'Run {i} Train AUC')
+            if 'val_auc' in hist:
+                plt.plot(epochs, hist['val_auc'], label=f'Run {i} Val AUC')
+        plt.xlabel('Epochs')
+        plt.ylabel('AUC')
+        plt.title('AUC')
         plt.legend()
         plt.grid(True)
 
         plt.tight_layout()
         plt.show()
 
-    #This function performs the entire training pipeline
-    def training_pipeline(self, filter1 = 32, filter2 = 64, filter3 = 128, class_weight_benign = 1, class_weight_malignant = 2, epochs = 50):
+    def plot_confusion_matrix(self, model, X_test, Y_test, threshold=0.20):
+        # Get predictions
+        y_pred_probs = model.neural_network.predict(X_test, batch_size=8)
+        y_pred = (y_pred_probs >= threshold).astype(int).ravel()
+
+        # True labels
+        y_true = Y_test.ravel()
+
+        # Confusion matrix
+        cm = confusion_matrix(y_true, y_pred)
+
+        # Display
+        disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=["Benign", "Malignant"])
+        disp.plot(cmap=plt.cm.Blues, values_format="d")
+        plt.title("Confusion Matrix")
+        plt.show()
+
+        return cm
+
+    #This function assigns the tensors into training, validation and test datasets from disk according to paths found in the meta_data.csv file
+    def load_training_data(self, meta_data_path, validate = True):
+        if validate:
+            data_split = [0.70, 0.20, 0.10]
+        else:
+            data_split = [0.90, 0, 0.10]
+
         # Retrieve data.
-        self.X_train, self.Y_train, self.X_val, self.Y_val,self.X_test,self.Y_test = self.data_processor.prepare_tensors("../data/meta_data.csv")
+        self.X_train, self.Y_train, self.X_val, self.Y_val,self.X_test,self.Y_test = self.data_processor.prepare_tensors(meta_data_path, split = data_split)
 
+        self.X_train, self.X_val, self.X_test = self.data_processor.z_score_normalization(self.X_train, self.X_val, self.X_test, validate = validate)
 
+        # Force dtype consistency
+        self.X_train = np.asarray(self.X_train, dtype="float32")
+        self.X_val   = np.asarray(self.X_val, dtype="float32")
+        self.X_test  = np.asarray(self.X_test, dtype="float32")
 
-        #Last Z-score normalization
-        mean = self.X_train.mean(axis=(0, 1, 2), keepdims=True).astype(np.float32)
-        std  = (self.X_train.std(axis=(0, 1, 2), keepdims=True) + 1e-6).astype(np.float32)
+        self.Y_train = np.asarray(self.Y_train, dtype="int32")
+        self.Y_val   = np.asarray(self.Y_val, dtype="int32")
+        self.Y_test  = np.asarray(self.Y_test, dtype="int32")
 
-        # Apply z-score normalization to all sets
-        self.X_train = (self.X_train - mean) / std
-        self.X_val   = (self.X_val   - mean) / std
-        self.X_test  = (self.X_test  - mean) / std
 
         print("Training Set:")
         print(f"  X_train: {np.array(self.X_train).shape}")
@@ -111,33 +151,9 @@ class Trainer:
         print("Train:", np.bincount(self.Y_train))
         print("Val:  ", np.bincount(self.Y_val))
 
-
-        layer_input = [
-            # Block 1
-            {"layer_type": "Conv2D", "filters": 32, "kernel": (3, 3),
-            "activation": "relu", "kernel_regularizer": regularizers.l2(1e-4)},
-            {"layer_type": "BatchNorm"},
-            {"layer_type": "Conv2D", "filters": 32, "kernel": (3, 3),
-            "activation": "relu", "kernel_regularizer": regularizers.l2(1e-4)},
-            {"layer_type": "BatchNorm"},
-            {"layer_type": "MaxPool", "pool_size": (2, 2)},
-
-            # Block 2
-            {"layer_type": "Conv2D", "filters": 64, "kernel": (3, 3),
-            "activation": "relu", "kernel_regularizer": regularizers.l2(1e-4)},
-            {"layer_type": "BatchNorm"},
-            {"layer_type": "Conv2D", "filters": 64, "kernel": (3, 3),
-            "activation": "relu", "stride": 2, "kernel_regularizer": regularizers.l2(1e-4)},
-            {"layer_type": "BatchNorm"},
-
-            # Block 3
-            {"layer_type": "Conv2D", "filters": 128, "kernel": (3, 3),
-            "activation": "relu", "kernel_regularizer": regularizers.l2(1e-4)},
-            {"layer_type": "BatchNorm"},
-            {"layer_type": "Conv2D", "filters": 128, "kernel": (3, 3),
-            "activation": "relu", "stride": 2, "kernel_regularizer": regularizers.l2(1e-4)},
-            {"layer_type": "BatchNorm"}
-        ]
+    #This function performs the entire training pipeline
+    def training_pipeline(self, filter1 = 32, filter2 = 64, filter3 = 128, class_weight_benign = 1, class_weight_malignant = 2, epochs = 50):
+        self.load_training_data("../data/meta_data_A.csv")
         #classes = np.unique(self.Y_train)
         #weights = compute_class_weight('balanced', classes=classes, y= self.Y_train)
         #class_weights = dict(zip(classes, weights))
@@ -146,25 +162,74 @@ class Trainer:
         #self.model.build_network(layer_input)
         # Phase 1: train head with frozen backbone
         self.model.build_split_network()
-        self.model.compile(learning_rate=1e-4)
+        self.model.compile(learning_rate=1e-3)
 
         history1 = self.model.train(
             self.X_train, self.Y_train,
             self.X_val, self.Y_val,
-            epochs=20, batch_size=8, class_weight=class_weights
+            epochs=1, batch_size=8, class_weight=class_weights
         )
-        self.plot_training_history(history1)
+        #self.plot_training_history(history1)
 
-        # Phase 2: unfreeze backbone and fine-tune
-        self.model.neural_network.get_layer("efficientnetb0").trainable = True
-        self.model.compile(learning_rate=1e-6)
+        # Phase 2: unfreeze last 20 layers and fine-tune
+        #self.model.neural_network.get_layer("efficientnetb0").trainable = True
+        for layer in self.model.backbone.layers[-8:]:
+            if not isinstance(layer, BatchNormalization):
+                layer.trainable = True
+        self.model.compile(learning_rate=1e-5)
+
+        tf.keras.backend.clear_session()
+        gc.collect()
 
         history2 = self.model.train(
             self.X_train, self.Y_train,
             self.X_val, self.Y_val,
-            epochs=20, batch_size=8, class_weight=class_weights
+            epochs=1, batch_size=4, class_weight=class_weights
         )
-        self.plot_training_history(history2)
+        self.plot_training_history([history1, history2])
         
-        self.model.evaluate(self.X_test, self.Y_test)
+        #self.model.evaluate(self.X_test, self.Y_test)
+        self.plot_confusion_matrix(self.model, self.X_test, self.Y_test)
+
+        self.model.save_model("model_test")
+
+    def final_training(self, class_weight_benign = 1, class_weight_malignant = 2, epochs = 50):
+        self.load_training_data("../data/meta_data_A.csv", validate = False)
+        #classes = np.unique(self.Y_train)
+        #weights = compute_class_weight('balanced', classes=classes, y= self.Y_train)
+        #class_weights = dict(zip(classes, weights))
+        class_weights = {0: class_weight_benign, 1: class_weight_malignant}
+
+        #self.model.build_network(layer_input)
+        # Phase 1: train head with frozen backbone
+        self.model.build_split_network()
+        self.model.compile(learning_rate=1e-3)
+
+        history1 = self.model.train(
+            self.X_train, self.Y_train,
+            self.X_val, self.Y_val,
+            epochs=32, batch_size=8, class_weight=class_weights
+        )
+        #self.plot_training_history(history1)
+
+        # Phase 2: unfreeze last 20 layers and fine-tune
+        #self.model.neural_network.get_layer("efficientnetb0").trainable = True
+        for layer in self.model.backbone.layers[-8:]:
+            if not isinstance(layer, BatchNormalization):
+                layer.trainable = True
+        self.model.compile(learning_rate=1e-5)
+
+        tf.keras.backend.clear_session()
+        gc.collect()
+
+        history2 = self.model.train(
+            self.X_train, self.Y_train,
+            self.X_val, self.Y_val,
+            epochs=10, batch_size=4, class_weight=class_weights
+        )
+        self.plot_training_history([history1, history2])
+        
+        #self.model.evaluate(self.X_test, self.Y_test)
+        self.plot_confusion_matrix(self.model, self.X_test, self.Y_test)
+
         self.model.save_model("model_test")

@@ -109,4 +109,15 @@ class dataProcessor:
 
         return X_train, Y_train, X_val, Y_val, X_test, Y_test
 
+    #This function will take in an array of image tensors X_train, X_Val, X_test and applies Z score normalization.
+    def z_score_normalization(self, X_train, X_val, X_test, validate = True):
+        mean = X_train.mean(axis=(0, 1, 2), keepdims=True).astype(np.float32)
+        std  = (X_train.std(axis=(0, 1, 2), keepdims=True) + 1e-6).astype(np.float32)
 
+        # Apply z-score normalization to all sets
+        X_train = (X_train - mean) / std
+        if (validate):
+            X_val   = (X_val   - mean) / std
+        X_test  = (X_test  - mean) / std
+
+        return X_train, X_val, X_test

@@ -15,33 +15,7 @@ class test_image_processor(unittest.TestCase):
 
     def setUp(self):
         self.model = Model()
-        self.layer_input = [
-            # Block 1
-            {"layer_type": "Conv2D", "filters": 32, "kernel": (3, 3), "activation": "relu"},
-            {"layer_type": "BatchNorm"},
-            {"layer_type": "Conv2D", "filters": 32, "kernel": (3, 3), "activation": "relu"},
-            {"layer_type": "BatchNorm"},
-            {"layer_type": "MaxPool", "pool_size": (2, 2)},
-
-            # Block 2
-            {"layer_type": "Conv2D", "filters": 64, "kernel": (3, 3), "activation": "relu"},
-            {"layer_type": "BatchNorm"},
-            {"layer_type": "Conv2D", "filters": 64, "kernel": (3, 3), "activation": "relu", "stride": 2},
-            {"layer_type": "BatchNorm"},
-
-            # Block 3
-            {"layer_type": "Conv2D", "filters": 128, "kernel": (3, 3), "activation": "relu"},
-            {"layer_type": "BatchNorm"},
-            {"layer_type": "Conv2D", "filters": 128, "kernel": (3, 3), "activation": "relu", "stride": 2},
-            {"layer_type": "BatchNorm"},
-
-            # Output Head
-            {"layer_type": "GlobalAvgPool"},
-            {"layer_type": "Dense", "units": 128, "activation": "relu"},
-            {"layer_type": "Dropout", "rate": 0.3},
-            {"layer_type": "Dense", "units": 1, "activation": "sigmoid", "dtype": "float32"}
-        ]
-        self.model.build_network(self.layer_input)
+        self.model.build_split_network()
         return 
        
     #Tests that this class object exists.
@@ -93,7 +67,9 @@ class test_image_processor(unittest.TestCase):
 
         self.assertEqual(num_of_layers, 17)
 
-
+    def test_temp_model_save(self):
+        path_name = self.model.temp_save_model("1A")
+        print(path_name)
 if __name__ == "__main__":
     unittest.main()
 

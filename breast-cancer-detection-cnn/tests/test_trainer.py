@@ -23,8 +23,12 @@ class test_trainer(unittest.TestCase):
                     
 
     def test_training_pipeline(self):
-        self.trainer.training_pipeline(filter1= 64, filter2= 128, filter3= 256, epochs = 100)
+        #self.trainer.training_pipeline(filter1= 64, filter2= 128, filter3= 256, epochs = 2)
         return
+
+    def test_final_training(self):
+        self.trainer.final_training()
+        
 
     def grid_search_training(self):
         #Row 1: 64, 128, 256 filters in first three, each time going up a magnitude on the class weighting factors.
