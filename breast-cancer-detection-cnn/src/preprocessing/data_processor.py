@@ -115,7 +115,6 @@ class dataProcessor:
         mean = X_train.mean(axis=(0, 1, 2), keepdims=True).astype(np.float32)
         std  = (X_train.std(axis=(0, 1, 2), keepdims=True) + 1e-6).astype(np.float32)
 
-<<<<<<< HEAD
         # Apply z-score normalization to all sets
         X_train = (X_train - mean) / std
         if (validate):
@@ -123,7 +122,6 @@ class dataProcessor:
         X_test  = (X_test  - mean) / std
 
         return X_train, X_val, X_test
-=======
     
     #This function takes in a path to a dicom file and extracts patient data from it.
     def process_dicom(self, dicom_path):
@@ -147,4 +145,3 @@ class dataProcessor:
         return pixels
 
 
->>>>>>> origin/GUI/Finalization

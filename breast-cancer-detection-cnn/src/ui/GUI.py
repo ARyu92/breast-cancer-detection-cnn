@@ -95,7 +95,7 @@ class GUI(QtWidgets.QWidget):
     
     def define_navigator(self):
         navigator = QtWidgets.QHBoxLayout()
-        navigator.addStretch(1.5)
+        navigator.addStretch(2)
 
         #Initialize load CC image button and add to nanvigator.
         self.load_CC_image_button = QtWidgets.QPushButton("Load CC Image")
@@ -113,13 +113,11 @@ class GUI(QtWidgets.QWidget):
         navigator.addWidget(self.load_model_button)
         self.load_model_button.clicked.connect(self.on_load_model_button_clicked)
 
-
-
         self.clear_button = QtWidgets.QPushButton("Clear Patient")
         navigator.addWidget(self.clear_button)
         self.clear_button.clicked.connect(self.on_clear_button_clicked)
 
-        navigator.addStretch(8.5)
+        navigator.addStretch(8)
 
 
         return navigator
@@ -150,16 +148,12 @@ class GUI(QtWidgets.QWidget):
         return info_bar
     
     def update_patient_info(self, patient_data):
-        patient_id_value = "Test233"
         self.patient_id.setText(f"Patient ID: {patient_data.ID}")
 
-        patient_fname_value = "Fran"
         self.patient_fname.setText(f"First Name: {patient_data.first_name}")
 
-        patient_lname_value = "Davis"
         self.patient_lname.setText(f"Last Name: {patient_data.last_name}")
 
-        patient_birthday_value = "July 22 1992"
         self.patient_birthday.setText(f"Birthday: {patient_data.birthday}")
 
     def define_image_display(self):
@@ -223,7 +217,7 @@ class GUI(QtWidgets.QWidget):
     def on_load_model_button_clicked(self):
         self.output_box.setText("Load model button clicked")
         model_path, _ = QtWidgets.QFileDialog.getOpenFileName(
-            self, "Load Model", "", "DICOM Files (*.keras)"
+            self, "Load Model", "", "h5 file (*.h5)"
         )
         if not model_path:
             return

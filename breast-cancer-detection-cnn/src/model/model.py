@@ -87,7 +87,7 @@ class Model:
 
     def evaluate(self, data, labels):
         results = self.neural_network.evaluate(data, labels, verbose=2, batch_size=1, return_dict=True)
-        print(results)
+        
         return results
 
     def save_model(self, model_name: str) -> str:
@@ -104,7 +104,7 @@ class Model:
 
         out_dir.mkdir(parents=True, exist_ok=False)
         out_path = str(out_dir / f"{name}_weights.h5")
-        self.neural_network.save_weights(out_path)
+        self.neural_network.save(out_path)
 
         return str(out_path)
     
@@ -127,7 +127,7 @@ class Model:
         return str(out_path)
 
     def load_model(self, path):
-        return keras.models.load_weights(path)
+        self.neural_network=  keras.models.load_model(path, compile= False)
 
     def specificity(y_true, y_pred):
         y_pred = tf.round(y_pred)
