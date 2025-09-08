@@ -7,7 +7,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 's
 from preprocessing.data_processor import dataProcessor
 from preprocessing.image_processor import ImageProcessor
 from model.model import Model
-
+from patient.patient import Patient
 
 
 
@@ -21,6 +21,7 @@ class GUI(QtWidgets.QWidget):
         self.image_processor = ImageProcessor()
         self.cc_tensor = None
         self.mlo_tensor = None
+        self.patient = Patient()
 
 
         self.apply_dark_theme()
@@ -60,8 +61,29 @@ class GUI(QtWidgets.QWidget):
     
     #This function applies a dark color theme
     def apply_dark_theme(self):
-        #To do
-        return 
+        dark_palette = QtGui.QPalette()
+
+        # Base colors
+        dark_palette.setColor(QtGui.QPalette.Window, QtGui.QColor(53, 53, 53))
+        dark_palette.setColor(QtGui.QPalette.WindowText, QtCore.Qt.white)
+        dark_palette.setColor(QtGui.QPalette.Base, QtGui.QColor(35, 35, 35))
+        dark_palette.setColor(QtGui.QPalette.AlternateBase, QtGui.QColor(53, 53, 53))
+        dark_palette.setColor(QtGui.QPalette.ToolTipBase, QtCore.Qt.white)
+        dark_palette.setColor(QtGui.QPalette.ToolTipText, QtCore.Qt.white)
+        dark_palette.setColor(QtGui.QPalette.Text, QtCore.Qt.white)
+        dark_palette.setColor(QtGui.QPalette.Button, QtGui.QColor(53, 53, 53))
+        dark_palette.setColor(QtGui.QPalette.ButtonText, QtCore.Qt.white)
+        dark_palette.setColor(QtGui.QPalette.BrightText, QtCore.Qt.red)
+
+        # Links
+        dark_palette.setColor(QtGui.QPalette.Link, QtGui.QColor(42, 130, 218))
+        dark_palette.setColor(QtGui.QPalette.Highlight, QtGui.QColor(42, 130, 218))
+        dark_palette.setColor(QtGui.QPalette.HighlightedText, QtCore.Qt.black)
+
+        # Apply to whole app
+        app = QtWidgets.QApplication.instance()
+        app.setPalette(dark_palette)
+        app.setStyle("Fusion")
     
     def define_header(self):
         header = QtWidgets.QHBoxLayout()
@@ -93,9 +115,9 @@ class GUI(QtWidgets.QWidget):
 
 
 
-        self.option_button = QtWidgets.QPushButton("Options")
-        navigator.addWidget(self.option_button)
-        self.option_button.clicked.connect(self.on_option_button_clicked)
+        self.clear_button = QtWidgets.QPushButton("Clear Patient")
+        navigator.addWidget(self.clear_button)
+        self.clear_button.clicked.connect(self.on_clear_button_clicked)
 
         navigator.addStretch(8.5)
 
@@ -127,18 +149,18 @@ class GUI(QtWidgets.QWidget):
 
         return info_bar
     
-    def update_patient_info(self):
+    def update_patient_info(self, patient_data):
         patient_id_value = "Test233"
-        self.patient_id.setText(f"Patient ID: {patient_id_value}")
+        self.patient_id.setText(f"Patient ID: {patient_data.ID}")
 
         patient_fname_value = "Fran"
-        self.patient_fname.setText = (f"First Name: {patient_fname_value}")
+        self.patient_fname.setText(f"First Name: {patient_data.first_name}")
 
         patient_lname_value = "Davis"
-        self.patient_lname.setText = (f"Last Name: {patient_lname_value}")
+        self.patient_lname.setText(f"Last Name: {patient_data.last_name}")
 
         patient_birthday_value = "July 22 1992"
-        self.patient_birthday.setText = (f"Birthday: {patient_birthday_value}")
+        self.patient_birthday.setText(f"Birthday: {patient_data.birthday}")
 
     def define_image_display(self):
         image_display = QtWidgets.QHBoxLayout()
@@ -221,7 +243,9 @@ class GUI(QtWidgets.QWidget):
         if not dicom_path:
             return
 
+        
         pixels = self.data_processor.process_dicom(dicom_path)
+        self.load_patient_demographics(dicom_path)
 
 
         # build QImage from NumPy data
@@ -268,9 +292,35 @@ class GUI(QtWidgets.QWidget):
         #Create the tensor.
         self.mlo_tensor = self.data_processor.process_image(dicom_path)
 
+    def load_patient_demographics(self, dicom_path):
+        self.patient.load_patient(dicom_path)
+        self.update_patient_info(self.patient)
 
-    def on_option_button_clicked(self):
-        self.output_box.setText("Option button clicked")
+
+    def on_clear_button_clicked(self):
+        #Patient ID
+        self.patient_id.setText(f"Patient ID: ---")
+        
+        #Patient First Name
+        self.patient_fname.setText(f"First Name: ---")
+
+        #Patient Last Name
+        self.patient_lname.setText(f"Last Name: ---")
+
+        #Birthday
+        self.patient_birthday.setText(f"Birthday: ---")
+        # Left image box
+        self.image_box_left = QtWidgets.QLabel()
+        self.image_box_left.setFixedSize(800, 800)
+        self.image_box_left.setStyleSheet("background-color: black; border: 2px solid white;")
+        self.image_box_left.setAlignment(QtCore.Qt.AlignCenter)
+
+        # Right image box
+        self.image_box_right = QtWidgets.QLabel()
+        self.image_box_right.setFixedSize(800, 800)
+        self.image_box_right.setStyleSheet("background-color: black; border: 2px solid white;")
+        self.image_box_right.setAlignment(QtCore.Qt.AlignCenter)
+
         
     def make_prediction(self):
         self.output_text = ""
