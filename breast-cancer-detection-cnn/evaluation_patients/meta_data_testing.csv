@@ -1,0 +1,8 @@
+,patient_id,laterality,tensor_path,label
+0,P_00001,LEFT,../data/Processed Data/P_00001/P_00001_LEFT.npy,1
+1,P_00004,LEFT,../data/Processed Data/P_00004/P_00004_LEFT.npy,0
+2,P_00005,RIGHT,../data/Processed Data/P_00005/P_00005_RIGHT.npy,1
+3,P_00007,LEFT,../data/Processed Data/P_00007/P_00007_LEFT.npy,0
+4,P_00008,LEFT,../data/Processed Data/P_00008/P_00008_LEFT.npy,0
+5,P_00008,RIGHT,../data/Processed Data/P_00008/P_00008_RIGHT.npy,0
+6,P_00009,RIGHT,../data/Processed Data/P_00009/P_00009_RIGHT.npy,1
