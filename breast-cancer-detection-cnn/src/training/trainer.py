@@ -232,4 +232,4 @@ class Trainer:
         #self.model.evaluate(self.X_test, self.Y_test)
         self.plot_confusion_matrix(self.model, self.X_test, self.Y_test)
 
-        self.model.save_model("model_test")
+        self.model.save_model("model_test", self.data_processor.training_mean, self.data_processor.training_std)

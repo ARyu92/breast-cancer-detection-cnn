@@ -17,6 +17,8 @@ from preprocessing.image_processor import ImageProcessor
 class dataProcessor:
     def __init__(self):
         self.image_processor = ImageProcessor()
+        self.training_mean = None
+        self.training_std = None
         self.meta_data = None
         return
     
@@ -112,22 +114,27 @@ class dataProcessor:
 
     #This function will take in an array of image tensors X_train, X_Val, X_test and applies Z score normalization.
     def z_score_normalization(self, X_train, X_val, X_test, validate = True):
-        mean = X_train.mean(axis=(0, 1, 2), keepdims=True).astype(np.float32)
-        std  = (X_train.std(axis=(0, 1, 2), keepdims=True) + 1e-6).astype(np.float32)
+        self.training_mean = X_train.mean(axis=(0, 1, 2), keepdims=True).astype(np.float32)
+        self.training_std  = (X_train.std(axis=(0, 1, 2), keepdims=True) + 1e-6).astype(np.float32)
 
         # Apply z-score normalization to all sets
-        X_train = (X_train - mean) / std
+        X_train = (X_train - self.training_mean) / self.training_std
         if (validate):
-            X_val   = (X_val   - mean) / std
-        X_test  = (X_test  - mean) / std
+            X_val   = (X_val   - self.training_mean) / self.training_std
+        X_test  = (X_test  - self.training_mean) / self.training_std
 
         return X_train, X_val, X_test
     
+    def Z_score_normalization_inference(self, pixels):
+        pixels = (pixels - self.training_mean) / (self.training_std)
+        pixels = np.squeeze(pixels)  # force (H,W,2), drop any stray batch dim
+        return pixels
+
     #This function takes in a path to a dicom file and extracts patient data from it.
     def process_dicom(self, dicom_path):
         dicom = pydicom.dcmread(dicom_path)
         pixels = self.image_processor.extract_pixels(dicom)
-        pixels = self.image_processor.normalize(pixels)
+        pixels = self.image_processor.normalize(pixels)        
         return pixels
     
     #This function takes in a path to a dicom file and processes it into a tensor.
@@ -141,6 +148,8 @@ class dataProcessor:
                                         black_low=0, black_high=100,
                                         patch_black_ratio=0.6)
         pixels = cv2.resize(pixels, (512,512))
+        pixels = np.squeeze(pixels)
+        assert pixels.shape == (512,512), f"Unexpected shape in process_image: {pixels.shape}"
 
         return pixels
 

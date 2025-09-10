@@ -2,6 +2,7 @@ import sys
 import os
 from qtpy import QtWidgets, QtCore, QtGui
 import numpy as np
+from pathlib import Path
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 from preprocessing.data_processor import dataProcessor
@@ -209,10 +210,10 @@ class GUI(QtWidgets.QWidget):
         return footer
     
     def on_benign_button_clicked(self):
-        self.make_prediction()
+        self.make_prediction(user_prediction= "benign")
 
     def on_malignant_button_clicked(self):
-        self.make_prediction()
+        self.make_prediction(user_prediction = "malignant")
 
     def on_load_model_button_clicked(self):
         self.output_box.setText("Load model button clicked")
@@ -222,9 +223,13 @@ class GUI(QtWidgets.QWidget):
         if not model_path:
             return
 
-        self.neural_network.load_model(model_path)
+        self.data_processor.training_mean, self.data_processor.training_std = self.neural_network.load_model(model_path)
         if (self.neural_network.neural_network is not None):
-            self.output_box.setText("Model loaded")
+            #Get name of the model file.
+            filename = os.path.basename(model_path)
+            self.output_box.setText(f"Model {filename} loaded")
+
+            
 
         self.neural_network.neural_network.compile()
 
@@ -258,6 +263,8 @@ class GUI(QtWidgets.QWidget):
         #Create the tensor.
         self.cc_tensor = self.data_processor.process_image(dicom_path)
 
+        self.output_box.setText("CC image loaded and tensor created")
+
     def on_load_MLO_image_button_clicked(self):
         self.output_box.setText("Load MLO image button clicked")
 
@@ -285,6 +292,8 @@ class GUI(QtWidgets.QWidget):
 
         #Create the tensor.
         self.mlo_tensor = self.data_processor.process_image(dicom_path)
+        
+        self.output_box.setText("MLO image loaded and tensor created")
 
     def load_patient_demographics(self, dicom_path):
         self.patient.load_patient(dicom_path)
@@ -304,19 +313,23 @@ class GUI(QtWidgets.QWidget):
         #Birthday
         self.patient_birthday.setText(f"Birthday: ---")
         # Left image box
-        self.image_box_left = QtWidgets.QLabel()
-        self.image_box_left.setFixedSize(800, 800)
+        self.image_box_left.clear()
         self.image_box_left.setStyleSheet("background-color: black; border: 2px solid white;")
-        self.image_box_left.setAlignment(QtCore.Qt.AlignCenter)
+        
 
         # Right image box
-        self.image_box_right = QtWidgets.QLabel()
-        self.image_box_right.setFixedSize(800, 800)
+        self.image_box_right.clear()
         self.image_box_right.setStyleSheet("background-color: black; border: 2px solid white;")
-        self.image_box_right.setAlignment(QtCore.Qt.AlignCenter)
+
+        #Clear the tensors.
+        self.cc_tensor = None
+        self.mlo_tensor = None
+
+        #Output message
+        self.output_box.setText("Patient cleared")
 
         
-    def make_prediction(self):
+    def make_prediction(self, user_prediction):
         self.output_text = ""
         is_ready_for_prediction = True
         if self.neural_network.neural_network == None:
@@ -336,18 +349,34 @@ class GUI(QtWidgets.QWidget):
             self.output_box.setText(self.output_text)
             return
         
-        stacked_tensor = np.stack([self.cc_tensor, self.mlo_tensor], axis=-1)
+        #Stack the CC and MLO images together along the channel axis
+        stacked_tensor = np.stack([np.squeeze(self.cc_tensor), np.squeeze(self.mlo_tensor)], axis=-1).astype(np.float32)
+
+
+        #Apply Z-score normalization using training set statistics
+        stacked_tensor = self.data_processor.Z_score_normalization_inference(stacked_tensor)
+        
+        #Add a batch dimension so the tensor matches the model input
         stacked_tensor = np.expand_dims(stacked_tensor, axis=0)
 
+        #Run prediction on the model
         prediction = self.neural_network.neural_network.predict(stacked_tensor)
 
-        if (prediction == 0):
-            self.output_text += "Model predicts Benign\n"
-        else:
-            self.output_text += "Model predicts Malignant\n"
-        
-        self.output_box.setText(self.output_text)
+        probability = prediction[0][0]
 
+        #If the prediction probability is less than or equal to 0.2 the prediction is benign.
+        if (probability <= 0.80):
+            self.output_text += f"You predicted {user_prediction}\n"
+            self.output_text += f"Model predicts Benign (Probability of malignancy p={probability:.2f})\n"
+            
+
+        #If the prediction probability is greater than 0.2 the prediction is malignant.
+        else:
+           self.output_text += f"You predicted {user_prediction}\n"
+           self.output_text += f"Model predicts Malignant (Probability of malignancy p={probability:.2f})\n"
+        
+        #Output the results to the GUI
+        self.output_box.setText(self.output_text)
 
         
         

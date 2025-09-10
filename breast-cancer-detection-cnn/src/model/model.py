@@ -6,6 +6,7 @@ from tensorflow.keras.applications import EfficientNetB0
 import tensorflow as tf
 from tensorflow.keras.applications import DenseNet121
 from tensorflow.keras.applications import MobileNetV2
+import h5py
 
 from pathlib import Path
 
@@ -90,7 +91,7 @@ class Model:
         
         return results
 
-    def save_model(self, model_name: str) -> str:
+    def save_model(self, model_name, training_mean, training_std):
         base = self.TRAINED_MODELS_DIR
         base.mkdir(parents=True, exist_ok=True)
 
@@ -106,28 +107,23 @@ class Model:
         out_path = str(out_dir / f"{name}_weights.h5")
         self.neural_network.save(out_path)
 
-        return str(out_path)
-    
-    def temp_save_model(self, model_name):
-        base = self.TEMP_MODELS_DIR
-        base.mkdir(parents=True, exist_ok=True)
+        #After saving the model, append the training mean and standard deviation so that it can be applied at inference.
+        with h5py.File(out_path, "a") as f:
+            f.attrs["training_mean"] = training_mean
+            f.attrs["training_std"] = training_std
 
-        name = model_name
-        out_dir = base / name
-        counter = 1
-        while out_dir.exists():
-            name = f"{model_name}_{counter}"
-            out_dir = base / name
-            counter += 1
-
-        out_dir.mkdir(parents=True, exist_ok=False)
-        out_path = str(out_dir / f"{name}_weights.h5")
-        self.neural_network.save(out_path)
 
         return str(out_path)
+ 
 
     def load_model(self, path):
         self.neural_network=  keras.models.load_model(path, compile= False)
+
+        #Afterloading the model, grab the training mean and standard deviation so that it can be applied at inference.
+        with h5py.File(path, "r") as f:
+            training_mean = f.attrs["training_mean"]
+            training_std = f.attrs["training_std"]
+            return training_mean, training_std
 
     def specificity(y_true, y_pred):
         y_pred = tf.round(y_pred)
