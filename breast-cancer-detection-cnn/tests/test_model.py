@@ -4,14 +4,14 @@ import os
 import numpy as np
 from tensorflow import keras
 import shutil
-import time
+import h5py
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
 from model.model import Model
 
 
-class test_image_processor(unittest.TestCase):
+class test_model(unittest.TestCase):
 
     def setUp(self):
         self.model = Model()
@@ -24,15 +24,15 @@ class test_image_processor(unittest.TestCase):
         
     
     #Tests that the network has the specified number of layers.
-    def test_class_exist(self):
+    def test_class_exist_1(self):
         num_of_layers = len(self.model.neural_network.layers)
 
-        self.assertEqual(num_of_layers, 17)
+        self.assertEqual(num_of_layers, 14)
 
     #Checks that the model saves to a given path.
     def test_save_model(self):
-        self.model.save_model("../trained_models/", "model_test")
-        path_exists = os.path.exists("../trained_models/model_test/model_test.keras")
+        self.model.save_model("model_test", training_mean = 3.14, training_std= 1)
+        path_exists = os.path.exists("../trained_models/model_test/model_test.h5")
 
         self.assertTrue(path_exists)
 
@@ -40,14 +40,14 @@ class test_image_processor(unittest.TestCase):
         shutil.rmtree("../trained_models/model_test/")
         
     #Tests that a model created with the same name has an integer incremented to it
-    def test_save_model(self):
-        self.model.save_model("../trained_models/", "model_test")
-        self.model.save_model("../trained_models/", "model_test")
-        self.model.save_model("../trained_models/", "model_test")
+    def test_save_model_1(self):
+        self.model.save_model("model_test", training_mean = 3.14, training_std= 1)
+        self.model.save_model("model_test", training_mean = 3.2, training_std= 2)
+        self.model.save_model("model_test", training_mean = 3.3, training_std= 1.5)
 
-        path_exists = os.path.exists("../trained_models/model_test/model_test.keras")
-        path_exists1 = os.path.exists("../trained_models/model_test_1/model_test_1.keras")
-        path_exists2 = os.path.exists("../trained_models/model_test_2/model_test_2.keras")
+        path_exists = os.path.exists("../trained_models/model_test/model_test.h5")
+        path_exists1 = os.path.exists("../trained_models/model_test_1/model_test_1.h5")
+        path_exists2 = os.path.exists("../trained_models/model_test_2/model_test_2.h5")
 
         self.assertTrue(path_exists and path_exists1 and path_exists2)
 
@@ -56,20 +56,24 @@ class test_image_processor(unittest.TestCase):
         shutil.rmtree("../trained_models/model_test_1/")
         shutil.rmtree("../trained_models/model_test_2/")
 
-        
-
+    #This tests that a created neural network model can be loaded in.
     def test_load_model(self):
-        self.model.save_model("../trained_models/", "model_load_test")
-        loaded_model = self.model.load_model("../trained_models/model_load_test/model_load_test.keras")
-        num_of_layers = len(loaded_model.layers)
+        self.model.save_model("model_load_test_load", training_mean = 3.14, training_std= 1)
+        self.model.load_model("../trained_models/model_load_test_load/model_load_test_load.h5")
+        num_of_layers = len(self.model.neural_network.layers)
 
-        loaded_model.summary()
+        self.assertEqual(num_of_layers, 14)
+        shutil.rmtree("../trained_models/model_load_test_load/")
 
-        self.assertEqual(num_of_layers, 17)
+    #This tests that a created neural network comes back with the correct assigned attribute.
+    def test_load_model_1(self):
+        self.model.save_model("model_load_test_load", training_mean = 3.14, training_std= 1)
+        mean, standard_dev = self.model.load_model("../trained_models/model_load_test_load/model_load_test_load.h5")
+        
+        self.assertEqual(mean, 3.14)
+        self.assertEqual(standard_dev, 1)
+        shutil.rmtree("../trained_models/model_load_test_load/")
 
-    def test_temp_model_save(self):
-        path_name = self.model.temp_save_model("1A")
-        print(path_name)
 if __name__ == "__main__":
     unittest.main()
 

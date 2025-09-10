@@ -31,6 +31,7 @@ class dataProcessor:
         uniqueIDs = df["patient_id"].unique()
         return uniqueIDs
     
+    #This function retrieves any tensors saved in a directory with appendix .npy
     def get_npy_files(self, directory_path):
         npy_files = []
         tensors = []
@@ -127,7 +128,7 @@ class dataProcessor:
     
     def Z_score_normalization_inference(self, pixels):
         pixels = (pixels - self.training_mean) / (self.training_std)
-        pixels = np.squeeze(pixels)  # force (H,W,2), drop any stray batch dim
+        pixels = np.squeeze(pixels)  
         return pixels
 
     #This function takes in a path to a dicom file and extracts patient data from it.

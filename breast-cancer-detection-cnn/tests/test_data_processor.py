@@ -22,10 +22,10 @@ class test_data_processor(unittest.TestCase):
 
     #Tests that the metadata file can be imported given a valid file path. 
     def test_import_metadata(self):
-        file_path = "../data/meta_data.csv"
+        file_path = "../data/meta_data_testing.csv"
 
         meta_data = self.processor.import_metadata(file_path)
-        self.assertEqual(len(meta_data), 1324)
+        self.assertEqual(len(meta_data), 7)
 
     def test_get_uniqueIDs(self):
         data = {
@@ -37,9 +37,30 @@ class test_data_processor(unittest.TestCase):
         uniqueIDs = self.processor.get_unique_IDs(df)
         self.assertEqual(len(uniqueIDs), 3)
 
+    def test_get_npy_files(self):
+        file_path = f'D:/Source/breast-cancer-detection-cnn/data/Processed Data/P_00001'
+        tensors = self.processor.get_npy_files(file_path)
+        self.assertEqual(tensors[0].shape, (512,512,2))
+
+    def test_z_score_normalization(self):
+        #Create a fake random dataset for the training, validation and testing set.
+        x_train = np.random.rand(10, 32, 32, 1)
+        x_val = np.random.rand(3, 32, 32, 1)
+        x_test = np.random.rand(3, 32, 32, 1)
+
+        x_train_norm, x_val_norm, x_test_norm = self.processor.z_score_normalization(x_train, x_val, x_test)
+
+        #Mean of X_train should be just about 0, and the standard deviation just about 1.
+        self.assertAlmostEqual(x_train_norm.mean(), 0.0, places = 2)
+        self.assertAlmostEqual(x_train_norm.std(), 1, places = 2)
+
+        #Normalized vald and test should not be identical to unnormalized
+        self.assertFalse(np.allclose(x_val_norm, x_val))
+        self.assertFalse(np.allclose(x_test_norm, x_test))
+
     #Tests that the tensors are returned with the proper split.
     def test_prepare_tensors(self):
-        file_path = "../data/meta_data.csv"
+        file_path = "../data/meta_data_testing.csv"
     
         X1, Y1, X2, Y2, X3, Y3 = self.processor.prepare_tensors(file_path)
         

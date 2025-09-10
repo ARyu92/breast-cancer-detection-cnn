@@ -104,15 +104,13 @@ class Model:
             counter += 1
 
         out_dir.mkdir(parents=True, exist_ok=False)
-        out_path = str(out_dir / f"{name}_weights.h5")
+        out_path = str(out_dir / f"{name}.h5")
         self.neural_network.save(out_path)
 
         #After saving the model, append the training mean and standard deviation so that it can be applied at inference.
         with h5py.File(out_path, "a") as f:
             f.attrs["training_mean"] = training_mean
             f.attrs["training_std"] = training_std
-
-
         return str(out_path)
  
 
@@ -124,10 +122,3 @@ class Model:
             training_mean = f.attrs["training_mean"]
             training_std = f.attrs["training_std"]
             return training_mean, training_std
-
-    def specificity(y_true, y_pred):
-        y_pred = tf.round(y_pred)
-        y_true = tf.cast(y_true, tf.float32)
-        tn = tf.reduce_sum((1 - y_true) * (1 - y_pred))
-        fp = tf.reduce_sum((1 - y_true) * y_pred)
-        return tn / (tn + fp + tf.keras.backend.epsilon())
