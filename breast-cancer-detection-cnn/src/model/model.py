@@ -45,11 +45,15 @@ class Model:
         cc_rgb = tf.tile(cc_channel, [1, 1, 1, 3])
         mlo_rgb = tf.tile(mlo_channel, [1, 1, 1, 3])
 
-        self.backbone = MobileNetV2(include_top=False, weights="imagenet", input_shape=(512, 512, 3))
-        self.backbone.trainable = False
+        self.cc_backbone = MobileNetV2(include_top=False, weights="imagenet", input_shape=(512, 512, 3))
+        self.mlo_backbone = MobileNetV2(include_top=False, weights="imagenet", input_shape=(512, 512, 3))
 
-        emb_cc = self.backbone(cc_rgb)
-        emb_mlo = self.backbone(mlo_rgb)
+        self.cc_backbone.trainable = False
+        self.mlo_backbone.trainable = False
+
+        emb_cc = self.cc_backbone(cc_rgb)
+        emb_mlo = self.mlo_backbone(mlo_rgb)
+
 
         emb_cc = layers.GlobalAveragePooling2D()(emb_cc)
         emb_mlo = layers.GlobalAveragePooling2D()(emb_mlo)

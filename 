@@ -1,0 +1,36 @@
+Merge remote-tracking branch 'origin/GUI/Finalization'
+
+# Conflicts:
+#	breast-cancer-detection-cnn/requirements.txt
+#	breast-cancer-detection-cnn/src/model/model.py
+#	breast-cancer-detection-cnn/src/preprocessing/data_processor.py
+#
+# It looks like you may be committing a merge.
+# If this is not correct, please run
+#	git update-ref -d MERGE_HEAD
+# and try again.
+
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# On branch main
+# Your branch is up to date with 'origin/main'.
+#
+# All conflicts fixed but you are still merging.
+#
+# Changes to be committed:
+#	modified:   notebooks/.ipynb_checkpoints/Preprocessing pipeline-checkpoint.ipynb
+#	modified:   notebooks/Preprocessing pipeline.ipynb
+#	modified:   src/main.py
+#	modified:   src/model/__pycache__/model.cpython-38.pyc
+#	new file:   src/patient/__pycache__/patient.cpython-38.pyc
+#	new file:   src/patient/patient.py
+#	new file:   src/preprocessing/__pycache__/data_processor.cpython-38.pyc
+#	new file:   src/preprocessing/__pycache__/image_processor.cpython-38.pyc
+#	modified:   src/preprocessing/data_processor.py
+#	modified:   src/preprocessing/image_processor.py
+#	modified:   src/ui/GUI.py
+#	modified:   src/ui/__pycache__/GUI.cpython-38.pyc
+#	new file:   tests/test_patient.py
+#

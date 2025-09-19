@@ -173,9 +173,11 @@ class Trainer:
 
         # Phase 2: unfreeze last 20 layers and fine-tune
         #self.model.neural_network.get_layer("efficientnetb0").trainable = True
-        for layer in self.model.backbone.layers[-8:]:
-            if not isinstance(layer, BatchNormalization):
-                layer.trainable = True
+        for backbone in [self.model.cc_backbone, self.model.mlo_backbone]:
+            for layer in backbone.layers[-8:]:
+                if not isinstance(layer, BatchNormalization):
+                    layer.trainable = True
+
         self.model.compile(learning_rate=1e-5)
 
         tf.keras.backend.clear_session()
