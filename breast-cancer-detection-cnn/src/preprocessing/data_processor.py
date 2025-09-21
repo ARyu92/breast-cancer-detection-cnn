@@ -126,6 +126,7 @@ class dataProcessor:
 
         return X_train, X_val, X_test
     
+    #This helper function performs the Z-score normalization for a data sample using the training data mean and std.
     def Z_score_normalization_inference(self, pixels):
         pixels = (pixels - self.training_mean) / (self.training_std)
         pixels = np.squeeze(pixels)  

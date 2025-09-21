@@ -8,19 +8,19 @@ import h5py
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
-from model.model import Model
+from model.breast_cancer_model import BreastCancerModel
 
 
 class test_model(unittest.TestCase):
 
     def setUp(self):
-        self.model = Model()
+        self.model = BreastCancerModel()
         self.model.build_split_network()
         return 
        
     #Tests that this class object exists.
     def test_class_exist(self):
-        self.assertIsInstance(self.model, Model)
+        self.assertIsInstance(self.model, BreastCancerModel)
         
     
     #Tests that the network has the specified number of layers.

@@ -3,6 +3,7 @@ import pydicom
 import numpy as np
 import cv2
 
+#This class is responsible for performing image related processing.
 class ImageProcessor:
     def __init__(self):
         return
@@ -17,10 +18,12 @@ class ImageProcessor:
 
         return image_tensor
     
+    #Extracts the pixel data from a DICOM object.
     def extract_pixels(self, dicom):
         pixels = dicom.pixel_array
         return pixels
     
+    #Normalizes pixel values from 0 to 255 for image viewing.
     def normalize(self, pixels):
         pixels = pixels.astype(float)
         pixels = (pixels - pixels.min()) / (pixels.max() - pixels.min()) * 255

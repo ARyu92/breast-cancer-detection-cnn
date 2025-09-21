@@ -16,16 +16,15 @@ from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
 mixed_precision.set_global_policy("mixed_float16")
 
-
-
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 TRAINED_MODELS_DIR = PROJECT_ROOT / "trained_models"
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
 from preprocessing.data_processor import dataProcessor
-from model.model import Model
+from model.breast_cancer_model import BreastCancerModel
 
+#This class is responsible for supervising the model training rounds.
 class Trainer:
     def __init__(self):
         self.data_processor = dataProcessor()
@@ -42,7 +41,7 @@ class Trainer:
         self.X_test = None
         self.Y_test = None
 
-        self.model = Model()
+        self.model = BreastCancerModel()
 
         return
     
@@ -50,6 +49,7 @@ class Trainer:
     def plot_training_history(self, histories):
         plt.figure(figsize=(15, 5))
 
+        #Plots the Training and validation sensitivity
         plt.subplot(1, 3, 1)
         for i, history in enumerate(histories, 1):
             hist = history.history
@@ -64,6 +64,7 @@ class Trainer:
         plt.legend()
         plt.grid(True)
 
+        #Plots the Training and validation precision
         plt.subplot(1, 3, 2)
         for i, history in enumerate(histories, 1):
             hist = history.history
@@ -78,6 +79,7 @@ class Trainer:
         plt.legend()
         plt.grid(True)
 
+        #Plots the Training and validation AUC
         plt.subplot(1, 3, 3)
         for i, history in enumerate(histories, 1):
             hist = history.history
@@ -95,6 +97,7 @@ class Trainer:
         plt.tight_layout()
         plt.show()
 
+    #This method performs inference of a test set and plots the confusion matrix. 
     def plot_confusion_matrix(self, model, X_test, Y_test, threshold=0.20):
         # Get predictions
         y_pred_probs = model.neural_network.predict(X_test, batch_size=8)
@@ -106,7 +109,7 @@ class Trainer:
         # Confusion matrix
         cm = confusion_matrix(y_true, y_pred)
 
-        # Display
+        # Plot and display the confusion matrix
         disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=["Benign", "Malignant"])
         disp.plot(cmap=plt.cm.Blues, values_format="d")
         plt.title("Confusion Matrix")
@@ -152,14 +155,9 @@ class Trainer:
         print("Val:  ", np.bincount(self.Y_val))
 
     #This function performs the entire training pipeline
-    def training_pipeline(self, filter1 = 32, filter2 = 64, filter3 = 128, class_weight_benign = 1, class_weight_malignant = 2, epochs = 50):
+    def training_pipeline(self, epochs_1 = 32, epochs_2 = 10):
         self.load_training_data("../data/meta_data_A.csv")
-        #classes = np.unique(self.Y_train)
-        #weights = compute_class_weight('balanced', classes=classes, y= self.Y_train)
-        #class_weights = dict(zip(classes, weights))
-        class_weights = {0: class_weight_benign, 1: class_weight_malignant}
 
-        #self.model.build_network(layer_input)
         # Phase 1: train head with frozen backbone
         self.model.build_split_network()
         self.model.compile(learning_rate=1e-3)
@@ -167,12 +165,10 @@ class Trainer:
         history1 = self.model.train(
             self.X_train, self.Y_train,
             self.X_val, self.Y_val,
-            epochs=1, batch_size=8, class_weight=class_weights
+            epochs=epochs_1, batch_size=8
         )
-        #self.plot_training_history(history1)
 
         # Phase 2: unfreeze last 20 layers and fine-tune
-        #self.model.neural_network.get_layer("efficientnetb0").trainable = True
         for backbone in [self.model.cc_backbone, self.model.mlo_backbone]:
             for layer in backbone.layers[-8:]:
                 if not isinstance(layer, BatchNormalization):
@@ -180,29 +176,26 @@ class Trainer:
 
         self.model.compile(learning_rate=1e-5)
 
+        #Clear the memory to avoid OOM issues and memory hole problems.
         tf.keras.backend.clear_session()
         gc.collect()
 
         history2 = self.model.train(
             self.X_train, self.Y_train,
             self.X_val, self.Y_val,
-            epochs=1, batch_size=4, class_weight=class_weights
+            epochs= epochs_2, batch_size=4
         )
+
+        #Plot the training history, test the model with unseen test data and plot confusion matrix.
         self.plot_training_history([history1, history2])
-        
-        #self.model.evaluate(self.X_test, self.Y_test)
         self.plot_confusion_matrix(self.model, self.X_test, self.Y_test)
+        #Save the model
+        self.model.save_model("training_run")
 
-        self.model.save_model("model_test")
-
-    def final_training(self, class_weight_benign = 1, class_weight_malignant = 2, epochs = 50):
+    #Performs the final model training without a validation set.
+    def final_training(self, epochs_1 = 32, epochs_2 = 10):
         self.load_training_data("../data/meta_data_A.csv", validate = False)
-        #classes = np.unique(self.Y_train)
-        #weights = compute_class_weight('balanced', classes=classes, y= self.Y_train)
-        #class_weights = dict(zip(classes, weights))
-        class_weights = {0: class_weight_benign, 1: class_weight_malignant}
 
-        #self.model.build_network(layer_input)
         # Phase 1: train head with frozen backbone
         self.model.build_split_network()
         self.model.compile(learning_rate=1e-3)
@@ -210,28 +203,26 @@ class Trainer:
         history1 = self.model.train(
             self.X_train, self.Y_train,
             self.X_val, self.Y_val,
-            epochs=32, batch_size=8, class_weight=class_weights
+            epochs=epochs_1, batch_size=8
         )
-        #self.plot_training_history(history1)
 
-        # Phase 2: unfreeze last 20 layers and fine-tune
-        #self.model.neural_network.get_layer("efficientnetb0").trainable = True
-        for layer in self.model.backbone.layers[-8:]:
+        # Phase 2: unfreeze last 8 layers and fine-tune
+        for layer in self.model.cc_backbone.layers[-8:]:
             if not isinstance(layer, BatchNormalization):
                 layer.trainable = True
         self.model.compile(learning_rate=1e-5)
 
+        #Clear the memory to avoid OOM issues and memory hole problems.
         tf.keras.backend.clear_session()
         gc.collect()
 
         history2 = self.model.train(
             self.X_train, self.Y_train,
             self.X_val, self.Y_val,
-            epochs=10, batch_size=4, class_weight=class_weights
+            epochs=epochs_2, batch_size=4
         )
         self.plot_training_history([history1, history2])
-        
-        #self.model.evaluate(self.X_test, self.Y_test)
+
         self.plot_confusion_matrix(self.model, self.X_test, self.Y_test)
 
         self.model.save_model("model_test", self.data_processor.training_mean, self.data_processor.training_std)

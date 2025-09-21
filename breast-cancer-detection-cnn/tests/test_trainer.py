@@ -27,7 +27,7 @@ class test_trainer(unittest.TestCase):
         return
 
     def test_final_training(self):
-        self.trainer.final_training()
+        self.trainer.final_training(epochs_1 = 25, epochs_2 = 10)
         
 
     def grid_search_training(self):

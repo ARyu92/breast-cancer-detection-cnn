@@ -2,7 +2,7 @@ import sys
 from qtpy import QtWidgets
 from ui.GUI import GUI
 
-
+#The main function of the entire application.
 def main():
     app = QtWidgets.QApplication(sys.argv)
     gui = GUI()

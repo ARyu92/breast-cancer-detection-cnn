@@ -7,24 +7,23 @@ from pathlib import Path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 from preprocessing.data_processor import dataProcessor
 from preprocessing.image_processor import ImageProcessor
-from model.model import Model
+from model.breast_cancer_model import BreastCancerModel
 from patient.patient import Patient
 
-
-
+#This class is responsible for all UI related functionality
 #The GUI is an inheirited class of the QtWidgets class.
 class GUI(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         self.output_text = ""
-        self.neural_network = Model()
+        self.neural_network = BreastCancerModel()
         self.data_processor = dataProcessor()
         self.image_processor = ImageProcessor()
         self.cc_tensor = None
         self.mlo_tensor = None
         self.patient = Patient()
 
-
+        #Applies style to the UI.
         self.apply_dark_theme()
 
         self.setWindowTitle("Breast Cancer Detection App")
@@ -86,6 +85,7 @@ class GUI(QtWidgets.QWidget):
         app.setPalette(dark_palette)
         app.setStyle("Fusion")
     
+    #------------------------------------UI Component initialization functions--------------------------------------------
     def define_header(self):
         header = QtWidgets.QHBoxLayout()
         label = QtWidgets.QLabel("Breast Cancer Detection App")
@@ -119,8 +119,6 @@ class GUI(QtWidgets.QWidget):
         self.clear_button.clicked.connect(self.on_clear_button_clicked)
 
         navigator.addStretch(8)
-
-
         return navigator
     
     def define_info_bar(self):
@@ -148,15 +146,6 @@ class GUI(QtWidgets.QWidget):
 
         return info_bar
     
-    def update_patient_info(self, patient_data):
-        self.patient_id.setText(f"Patient ID: {patient_data.ID}")
-
-        self.patient_fname.setText(f"First Name: {patient_data.first_name}")
-
-        self.patient_lname.setText(f"Last Name: {patient_data.last_name}")
-
-        self.patient_birthday.setText(f"Birthday: {patient_data.birthday}")
-
     def define_image_display(self):
         image_display = QtWidgets.QHBoxLayout()
         #Add spacers on the left
@@ -209,6 +198,8 @@ class GUI(QtWidgets.QWidget):
 
         return footer
     
+    #------------------------------------Event callback functions--------------------------------------------
+
     def on_benign_button_clicked(self):
         self.make_prediction(user_prediction= "benign")
 
@@ -328,7 +319,7 @@ class GUI(QtWidgets.QWidget):
         #Output message
         self.output_box.setText("Patient cleared")
 
-        
+    #------------------------------------Support functions for events--------------------------------------------
     def make_prediction(self, user_prediction):
         self.output_text = ""
         is_ready_for_prediction = True
@@ -377,6 +368,15 @@ class GUI(QtWidgets.QWidget):
         
         #Output the results to the GUI
         self.output_box.setText(self.output_text)
+
+    def update_patient_info(self, patient_data):
+        self.patient_id.setText(f"Patient ID: {patient_data.ID}")
+
+        self.patient_fname.setText(f"First Name: {patient_data.first_name}")
+
+        self.patient_lname.setText(f"Last Name: {patient_data.last_name}")
+
+        self.patient_birthday.setText(f"Birthday: {patient_data.birthday}")
 
         
         

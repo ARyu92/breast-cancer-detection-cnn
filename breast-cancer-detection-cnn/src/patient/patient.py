@@ -1,6 +1,6 @@
 import pydicom
-from datetime import datetime
 
+#This class holds patient demographic information loaded from the DICOM file.
 class Patient():
     def __init__(self):
         self.first_name = None
